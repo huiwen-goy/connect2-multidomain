@@ -1,0 +1,53 @@
+---
+title: "A Multi-Domain Self-Report Assessment of Health in Older Adults With and Without Hearing Loss"
+output: html_document
+---
+
+## Data cleaning
+
+#### 1. Exclude participants who responded "Do not consent" online.
+
+Note: Also extract consent to stay on list, or not. Forward "do not contact" list to ???
+```{r, echo=FALSE}
+
+
+```
+
+#### 2. Match audiograms to those who consented to accessing audiometric data.
+```{r, echo=FALSE}
+
+
+```
+
+#### 3. Evaluate amount of missing data from all items.
+```{r, echo=FALSE}
+
+
+```
+
+#### 4. Data quality check: Values and distributions are within bounds.
+```{r, echo=FALSE}
+
+
+```
+
+## Data exploration
+
+```{r, echo=FALSE}
+
+
+```
+
+
+```{r, echo=FALSE}
+
+
+```
+
+
+```{r, echo=FALSE}
+
+
+```
+
+
