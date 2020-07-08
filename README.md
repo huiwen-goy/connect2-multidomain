@@ -1,4 +1,4 @@
 # connect2-multidomain
-Ethics protocol: A Multi-Domain Self-Report Assessment of Health in Older Adults With and Without Hearing Loss
+The Rmd file contains the code for merging Qualtrics and Connect data, and the code for creating new variables.
 
-This is a placeholder for storing the code used for this project. In the Rmd file, I've listed some initial steps that need to be taken for cleaning and preparing the dataset.
+Note that there hasn't been any "cleaning" of variables yet. Most variables do not need cleaning, because there was a closed set of responses in Qualtrics. However, any fields that allowed participants to type in their answer (e.g., year of birth) do need to be checked.
