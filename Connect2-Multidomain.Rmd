@@ -1,0 +1,498 @@
+---
+title: "A multi-domain self-report assessment of health in adults with and without hearing loss"
+output: html_document
+---
+
+### Preparing the dataset
+
+**Initial steps**
+ 
+1. Downloaded data from Qualtrics (numeric version, in .csv format), on July 2, 2020. Recorded responses n = 553.
+2. Deleted second and third header rows (rows 2 and 3).
+3. Sort by column "Consent_1_main", and deleted participants who declined to participate; i.e. responded with option 2 or 3 (n = 26). Note: leaves 527 participants.
+4. Created Qualtrics ID "key" for later matching with Connect IDs, with five columns: ResponseId, RecipientLastName, RecipientFirstName, Consent_1_main, Consent_2_clinic; file named "id_qualtrics.csv".
+5. Deleted columns from main Qualtrics dataset: IPAddress, RecipientLastName, RecipientFirstName, RecipientEmail, ExternalReference, LocationLatitude, LocationLongitude, DistributionChannel, UserLanguage
+6. Match Connect IDs to Qualtrics IDs using first and last names.
+
+```{r, include=FALSE}
+
+## Match Connect IDs to Qualtrics IDs
+
+# Qualtrics names & id
+#qualtrics <- read.csv("id_qualtrics.csv", header=TRUE, na.strings=c(""))
+
+# Check for duplicate names; none
+#sum(duplicated(qualtrics[, c('RecipientFirstName', 'RecipientLastName')]))
+
+# Connect names & id
+#connect <- read.csv("Name_ID.csv", header=TRUE, na.strings=c(""))
+
+# Merge by first and last names
+#ids <- merge(x = qualtrics, y = connect, all.x = TRUE, by.x = c('RecipientFirstName', 'RecipientLastName'), by.y = c('Firstname', 'Lastname'))
+
+# Why are there 3 extra cases (n=530 instead of n=527)? Three names are shared by two people in Connect database, hence each name was duplicated to accommodate two different Connect IDs. Deduced which Connect ID was correct based on respondent's email or year of birth.
+#ids[duplicated(ids[, c('RecipientFirstName', 'RecipientLastName')])==TRUE, ]
+
+# Initial result: 147 with no match for Connect ID
+#sum(is.na(ids$ID))
+
+# Manual search in Connect list for names
+#first <- function(string) {
+#  fraglist <- connect[grep(as.character(string), connect$Firstname), ]
+#  return(fraglist)
+#}
+
+#last <- function(string) {
+#  fraglist <- connect[grep(as.character(string), connect$Lastname), ]
+#  return(fraglist)
+#}
+
+# Final result: Of 527 respondents who consented to participate, 453 matched, 6 declined to share info, 2 did not fill out consent option to share info, 66 unmatched to Connect IDs.
+
+```
+
+7. Match audiometric and other clinic info to Qualtrics data using Qualtrics IDs.
+```{r, echo=FALSE}
+
+# Qualtrics data
+#qdata <- read.csv("Multidomain_2020.07.02_18.16_numeric.csv", header=TRUE, na.strings=c(""))
+
+# ID key
+#id <- read.csv("id_qualtrics_connect.csv", header=TRUE)
+#id <- id[, -c(2, 3, 5)]
+
+# Clinic data
+#cdata <- read.csv("clinic.csv", header=TRUE, na.strings=c(""))
+
+# Merge Connect IDs to Qualtrics data
+#qdata2 <- merge(x = qdata, y = id, all.x = TRUE, by.x = 'ResponseId', by.y = 'QualtricsId')
+
+# Merge clinic data to Qualtrics data
+#data <- merge(x = qdata2, y = cdata, all.x = TRUE, by.x = 'ConnectId', by.y = 'ID')
+#write.csv(data, '~/Desktop/Qualtrics_data_2020.07.06.csv')
+
+# Renamed columns 15iSSQ with SSQ15i so that column names start with non-numeric character
+
+```
+
+*Note that there hasn't yet been "cleaning" of any variables, e.g., for year of birth, some people typed in text other than four digits.*
+
+### Evaluating data quality
+
+Of 527 respondents: 444 (84%) consented to share their clinic data and had clinic data available; 75 (14%) consented to share but their Connect ID did not match a Connect database ID; 6 (1%) did not consent to share, 2 (<1%) left the clinic data consent option blank.
+
+```{r, echo=FALSE}
+
+# Read cleaned-up dataset, containing Qualtrics data matched to Connect data for those who consented to sharing clinic data (and those who had clinic data available)
+
+data <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE)
+
+# Count of respondents with matching clinic data
+#d2 <- data[, c('Consent_2_clinic', 'ConnectId', 'ID.clinic')] #527
+#nrow(d2[d2$Consent_2_clinic == 1 & is.na(d2$ID.clinic) == FALSE,]) #444
+#nrow(d2[d2$Consent_2_clinic == 1 & is.na(d2$Consent_2_clinic) == FALSE & #is.na(d2$ID.clinic) == TRUE,]) #75
+#nrow(d2[d2$Consent_2_clinic == 2 & is.na(d2$Consent_2_clinic) == FALSE,]) #6
+#nrow(d2[is.na(d2$Consent_2_clinic) == TRUE & is.na(d2$ID.clinic) == TRUE,]) #2
+
+# Conclusion: Of 527 respondents, 444 (84%) consented to share their clinic data and had clinic data available; 75 (14%) consented to share but their Connect ID did not match a Connect database ID; 6 (1%) did not consent to share, 2 (<1%) left the clinic data consent option blank.
+
+```
+
+Of 527 respondents, 439 have full audiograms available; 85 have completely missing audiograms, and 3 have between 2 and 6 missing cells.
+```{r, echo=FALSE}
+
+# Evaluate missing data: Audiograms
+
+# 444 respondents with available clinic data
+#d2 <- data[data$Consent_2_clinic == 1 & is.na(data$ID.clinic) == FALSE, ]
+# 439 have full audiogram available, 5 have missing cells in audiogram
+#table(rowSums(is.na(d2[, 289:300])))
+
+```
+
+Evaluating only the items in the questionnaire that make up the shortest possible path through the survey, i.e., skipping all conditional items that only appear given a 'yes' answer earlier, 93.7% of repondents answered at least 90% of questionnaire items. 
+```{r, echo=FALSE}
+
+# Evaluate missing data: Questionnaire items
+
+# Only items comprising the shortest path through survey, excluding consent, metadata, and conditional questions (213 items remaining)
+d2 <- data[, c(14:18, 20:53, 58:60, 62, 64, 69:71, 82, 87:121, 124:149, 162:226, 234:272)]
+
+propNA <- rowSums(is.na(d2))/213
+hist(propNA, breaks = 100, xlim=c(0, 1), col = 'gray', 
+  main = "Items comprising shortest path through survey", 
+  ylab = "Count of participants", xlab = "Proportion NA cells in submitted survey")
+
+# Average percent of missing items per participant = 4.148738%
+#mean(propNA)*100
+
+# Cumulative table of available (non-NA) data
+propPresent <- 1 - propNA
+tablePresent <- as.data.frame(table(propPresent))
+tablePresent$Cumfreq <- cumsum(tablePresent$Freq)
+tablePresent$percentPresent <- as.numeric(levels(tablePresent$propPresent))[tablePresent$propPresent] * 100
+tablePresent$CumPercent <- cumsum(tablePresent$Freq)/527 * 100
+
+#100 - 6.2618596
+
+```
+
+### Calculating composite scores
+
+**Current list of composite scores:**
+ 
+- Physical health: Total count of co-morbidities
+- SSQ15i: Average score, and three average sub-scores
+- Social Isolation Measure (SIM): Total score
+- Emo-CheQ four items: Total score
+- HHIE-S: Total score, and two sub-scores
+- Cognitive Self-Report Questionnaire (CSRQ): Total score (no info on scoring)
+- Activities-Specific Balance Confidence Scale: Average score
+- Satisfaction with Life Scale (SWLS): Average score
+- WHOQOL-BREF: Specific scoring procedure in manual
+- Loneliness: Scored according to Mick et al. (2018)
+- Patient Health Questionnaire (PHQ): Total score
+- Social Network Index: Sum; scoring procedure in Mick et al. (2018)
+- Social Participation (CCHS / CLSA): Recoding procedure in Mick et al. (2018)
+- General Relationship Satisfaction: Total score
+- MOS Social Support Survey: Scoring procedure in Mick et al. (2018)
+- PTA4 better ear
+
+Unless there were specific rules about how to deal with NAs in a scoring procedure, for averages, I generally used na.rm=TRUE, calculating the average without including any NA cells. For totals, I generally used na.rm=FALSE, setting the row total to be NA if there was one or more NA cells (exceptions are the Social Network Index and Social Participant score calculations).
+ 
+```{r, echo=FALSE}
+
+# Physical co-morbidities: total count
+data$Comorb_count <- rowSums(data[, c(22:52)] == 1, na.rm=TRUE)
+
+# SSQ 15-item: mean of all items, and three subscales
+data$SSQ15i_avg <- rowMeans(data[, c(87:101)], na.rm=TRUE)
+data$SSQ15i_avg[which(is.nan(data$SSQ15i_avg))] <- NA #transform NaN to NA
+# Qualities subscale
+data$SSQ15i_qualities <- rowMeans(data[, c(87:91)], na.rm=TRUE)
+data$SSQ15i_qualities[which(is.nan(data$SSQ15i_qualities))] <- NA
+# Spatial subscale
+data$SSQ15i_spatial <- rowMeans(data[, c(92:96)], na.rm=TRUE)
+data$SSQ15i_spatial[which(is.nan(data$SSQ15i_spatial))] <- NA
+# Speech subscale
+data$SSQ15i_speech <- rowMeans(data[, c(97:101)], na.rm=TRUE)
+data$SSQ15i_speech[which(is.nan(data$SSQ15i_speech))] <- NA
+
+# Social Isolation Measure (SIM): sum
+data$SIM_total <- rowSums(data[, c(102:106)], na.rm=FALSE)
+
+# Emo-CheQ four items: sum
+data$Emocheq4_total <- rowSums(data[, c(107:110)], na.rm=FALSE)
+
+# HHIE-S: total, and two subscales
+data$HHIES_total <- rowSums(data[, c(111:120)], na.rm=FALSE)
+data$HHIES_emo <- rowSums(data[, c(111, 112, 114, 117, 119)], na.rm=FALSE)
+data$HHIES_soc <- rowSums(data[, c(113, 115, 116, 118, 120)], na.rm=FALSE) 
+
+# Cognitive Self-Report Questionnaire (CSRQ): reverse-coded variables so that a high score means better cognition; original response '6' ("does not apply") recoded to NA
+cog <- data.frame(case = as.numeric(c(1:527))) # Create new temp dataset
+
+cog$CSRQ_1_recoded <- 6 - data$CSRQ_1 #better
+cog$CSRQ_1_recoded[cog$CSRQ_1_recoded == 0] <- NA
+
+cog$CSRQ_2_recoded <- data$CSRQ_2
+cog$CSRQ_2_recoded[cog$CSRQ_2_recoded == 6] <- NA
+
+cog$CSRQ_3_recoded <- 6 - data$CSRQ_3 #better
+cog$CSRQ_3_recoded[cog$CSRQ_3_recoded == 0] <- NA
+
+cog$CSRQ_4_recoded <- data$CSRQ_4
+cog$CSRQ_4_recoded[cog$CSRQ_4_recoded == 6] <- NA
+
+cog$CSRQ_5_recoded <- 6 - data$CSRQ_5 #better
+cog$CSRQ_5_recoded[cog$CSRQ_5_recoded == 0] <- NA
+
+cog$CSRQ_6_recoded <- 6 - data$CSRQ_6 #better
+cog$CSRQ_6_recoded[cog$CSRQ_6_recoded == 6] <- NA
+
+cog$CSRQ_7_recoded <- data$CSRQ_7
+cog$CSRQ_7_recoded[cog$CSRQ_7_recoded == 6] <- NA
+
+cog$CSRQ_8_recoded <- 6 - data$CSRQ_8 #better
+cog$CSRQ_8_recoded[cog$CSRQ_8_recoded == 0] <- NA
+
+cog$CSRQ_9_recoded <- data$CSRQ_9
+cog$CSRQ_9_recoded[cog$CSRQ_9_recoded == 6] <- NA
+
+cog$CSRQ_10_recoded <- data$CSRQ_10
+cog$CSRQ_10_recoded[cog$CSRQ_10_recoded == 6] <- NA
+
+cog$CSRQ_11_recoded <- 6 - data$CSRQ_11 #better
+cog$CSRQ_11_recoded[cog$CSRQ_11_recoded == 0] <- NA
+
+cog$CSRQ_12_recoded <- data$CSRQ_12
+cog$CSRQ_12_recoded[cog$CSRQ_12_recoded == 6] <- NA
+
+cog$CSRQ_13_recoded <- data$CSRQ_13
+cog$CSRQ_13_recoded[cog$CSRQ_13_recoded == 6] <- NA
+
+cog$CSRQ_14_recoded <- 6 - data$CSRQ_14 #better
+cog$CSRQ_14_recoded[cog$CSRQ_14_recoded == 0] <- NA
+
+cog$CSRQ_15_recoded <- 6 - data$CSRQ_15 #better
+cog$CSRQ_15_recoded[cog$CSRQ_15_recoded == 0] <- NA
+
+cog$CSRQ_16_recoded <- data$CSRQ_16
+cog$CSRQ_16_recoded[cog$CSRQ_16_recoded == 6] <- NA
+
+cog$CSRQ_17_recoded <- data$CSRQ_17
+cog$CSRQ_17_recoded[cog$CSRQ_17_recoded == 6] <- NA
+
+cog$CSRQ_18_recoded <- 6 - data$CSRQ_18 #better
+cog$CSRQ_18_recoded[cog$CSRQ_18_recoded == 0] <- NA
+
+cog$CSRQ_19_recoded <- data$CSRQ_19
+cog$CSRQ_19_recoded[cog$CSRQ_19_recoded == 6] <- NA
+
+cog$CSRQ_20_recoded <- 6 - data$CSRQ_20 #better
+cog$CSRQ_20_recoded[cog$CSRQ_20_recoded == 0] <- NA
+
+cog$CSRQ_21_recoded <- 6 - data$CSRQ_21 #better
+cog$CSRQ_21_recoded[cog$CSRQ_21_recoded == 0] <- NA
+
+cog$CSRQ_22_recoded <- data$CSRQ_22
+cog$CSRQ_22_recoded[cog$CSRQ_22_recoded == 6] <- NA
+
+cog$CSRQ_23_recoded <- data$CSRQ_23
+cog$CSRQ_23_recoded[cog$CSRQ_23_recoded == 6] <- NA
+
+cog$CSRQ_24_recoded <- data$CSRQ_24
+cog$CSRQ_24_recoded[cog$CSRQ_24_recoded == 6] <- NA
+
+cog$CSRQ_25_recoded <- 6 - data$CSRQ_25 #better
+cog$CSRQ_25_recoded[cog$CSRQ_25_recoded == 0] <- NA
+
+cog <- cog[, -1]
+cog$CSRQ_total <- rowSums(cog[, c(1:25)], na.rm=FALSE)
+
+# CSRQ: sum; transfer final summed variable to official dataset 
+data$CSRQ_total <- cog$CSRQ_total
+
+# Activities-Specific Balance Confidence Scale: mean; high is good balance
+data$ABC_average <- rowMeans(data[, c(162:177)], na.rm=TRUE)
+
+# Satisfaction with Life Scale (SWLS): mean; low is poor satisfaction
+data$SWLS_average <- rowMeans(data[, c(178:182)], na.rm=TRUE)
+
+# WHOQOL-BREF: following instructions in Table 3 of manual 
+who <- data[, c(183:208)] # Create new temp dataset
+
+#summary(who) # Check responses of each variable between 1 to 5
+
+who$WHO_3_pai_med_enj_me_1 <- 6 - who$WHO_3_pai_med_enj_me_1 # Reverse-code Q3
+who$WHO_3_pai_med_enj_me_2 <- 6 - who$WHO_3_pai_med_enj_me_2 # Reverse-code Q4
+who$WHO_8_neg_feelings_1 <- 6 - who$WHO_8_neg_feelings_1 # Reverse-code Q26
+
+# Keep Q1 and Q2 separate
+who$WHOQOL_Q1_qol <- data$WHO_1_rate_qol_1 
+who$WHOQOL_Q2_health <- data$WHO_2_health_satisf_1
+
+# Compute domain scores; individual domains set to NA if too many NAs.
+who$WHOQOL_D1 <- ifelse(rowSums(is.na(who[, c(3, 4, 10, 15, 16, 17, 18)])) <= 1, 
+  rowMeans(who[, c(3, 4, 10, 15, 16, 17, 18)], na.rm=TRUE) * 4, NA)
+who$WHOQOL_D2 <- ifelse(rowSums(is.na(who[, c(5, 6, 7, 11, 19, 26)])) <= 1, 
+  rowMeans(who[, c(5, 6, 7, 11, 19, 26)], na.rm=TRUE) * 4, NA)
+who$WHOQOL_D3 <- ifelse(rowSums(is.na(who[, c(20, 21, 22)])) <= 1, 
+  rowMeans(who[, c(20, 21, 22)], na.rm=TRUE) * 4, NA)
+who$WHOQOL_D4 <- ifelse(rowSums(is.na(who[, c(8,9,12,13,14,23,24,25)])) <= 2, 
+  rowMeans(who[, c(8,9,12,13,14,23,24,25)], na.rm=TRUE) * 4, NA)
+
+# At least 21 of 26 questions must be answered, otherwise entire row will be set to NA; this happens to already be the case, but add these steps to make sure
+who$WHOQOL_Q1_qol[rowSums(is.na(who[, c(1:26)])) > 5] <- NA
+who$WHOQOL_Q2_health[rowSums(is.na(who[, c(1:26)])) > 5] <- NA
+who$WHOQOL_D1[rowSums(is.na(who[, c(1:26)])) > 5] <- NA
+who$WHOQOL_D2[rowSums(is.na(who[, c(1:26)])) > 5] <- NA
+who$WHOQOL_D3[rowSums(is.na(who[, c(1:26)])) > 5] <- NA
+who$WHOQOL_D4[rowSums(is.na(who[, c(1:26)])) > 5] <- NA
+# checking into which cases have how many NAs
+#table(rowSums(is.na(who[, 1:26])))
+#which(rowSums(is.na(who[, 1:26])) == 2)
+#cbind(c(1:26), t(who[323,1:26])) #D3 should be set to NA; correct
+
+# Check min and max of each domain are within 4 to 20
+#summary(who$WHOQOL_D1)
+#summary(who$WHOQOL_D2)
+#summary(who$WHOQOL_D3)
+#summary(who$WHOQOL_D4)
+
+# Copy temp variables to official dataset
+data$WHOQOL_Q1_qol <- who$WHOQOL_Q1_qol   
+data$WHOQOL_Q2_health <- who$WHOQOL_Q2_health
+data$WHOQOL_D1 <- who$WHOQOL_D1
+data$WHOQOL_D2 <- who$WHOQOL_D2
+data$WHOQOL_D3 <- who$WHOQOL_D3
+data$WHOQOL_D4 <- who$WHOQOL_D4
+
+# Patient Health Questionnaire (PHQ): sum
+data$PHQ4_total <- rowSums(data[, c(209:212)], na.rm=TRUE)
+
+# Loneliness
+# "Participants were classified as lonely if they responded “some of the time” (1 to 2 days), “occasionally” (3 to 4 days), or “all of the time” (5 to 7 days). Those who responded “rarely or never” (<1 day) were considered not lonely." (Mick et al, 2018)
+
+#table(data$CLSA_lonely, useNA = "always") # check categories
+data$Lonely <- rep(NA, 527)
+data$Lonely[data$CLSA_lonely == 1] <- 0
+data$Lonely[data$CLSA_lonely > 1] <- 1
+#table(data$CLSA_lonely, data$Lonely, useNA = "always") # check recoding
+
+# Social Network Index
+
+# "Participants scored 1 point if they were married or in a domestic partnership. They also received 1 point (each) if they had interpersonal contact at least every 1 to 2 weeks (during the past year) with children, other close family members, friends, neighbours, work colleagues, schoolmates, fellow volunteers, members of nonreligious community groups, and members of religious groups." (Mick et al, 2018)
+
+sni <- data.frame(case = c(1:527)) # Create new temp dataset
+
+sni$Partner <- ifelse(data$Demo_6_marital == 1, 1, 
+                  ifelse(data$Demo_6_marital > 1, 0, NA)) 
+#table(sni$Partner, data$Demo_6_marital, useNA="always")
+
+sni$Children <- ifelse(data$Social_SNI_1_1 == 1, 1,
+                  ifelse(data$Social_SNI_1_1 == 2, 1, 
+                   ifelse(data$Social_SNI_1_1 == 7, 1,  
+                    ifelse(data$Social_SNI_1_1 > 2 & data$Social_SNI_1_1 < 7, 0, NA))))
+#table(sni$Children, data$Social_SNI_1_1, useNA="always")
+
+sni$Siblings <- ifelse(data$Social_SNI_1_2 == 1, 1,
+                  ifelse(data$Social_SNI_1_2 == 2, 1, 
+                   ifelse(data$Social_SNI_1_2 == 7, 1,  
+                    ifelse(data$Social_SNI_1_2 > 2 & data$Social_SNI_1_2 < 7, 0, NA))))
+#table(sni$Siblings, data$Social_SNI_1_2, useNA="always")
+
+sni$Relatives <- ifelse(data$Social_SNI_1_3 == 1, 1,
+                  ifelse(data$Social_SNI_1_3 == 2, 1, 
+                   ifelse(data$Social_SNI_1_3 == 7, 1,  
+                    ifelse(data$Social_SNI_1_3 > 2 & data$Social_SNI_1_3 < 7, 0, NA))))
+#table(sni$Relatives, data$Social_SNI_1_3, useNA="always")
+
+sni$Siblings[is.na(sni$Siblings)] <- 0 #collapse Siblings and Relatives
+sni$Relatives[is.na(sni$Relatives)] <- 0
+sni$CloseRelatives <- ifelse(sni$Siblings == 1 & sni$Relatives == 1, 1,
+                      ifelse(sni$Siblings == 1 & sni$Relatives == 0, 1, 
+                      ifelse(sni$Siblings == 0 & sni$Relatives == 1, 1,
+                      ifelse(sni$Siblings == 0 & sni$Relatives == 0, 0, NA))))
+#head(sni[, c('Siblings', 'Relatives', 'CloseRelatives')], 50L)
+
+sni$Friends <- ifelse(data$Social_SNI_1_4 == 1, 1,
+                  ifelse(data$Social_SNI_1_4 == 2, 1, 
+                    ifelse(data$Social_SNI_1_4 > 2, 0, NA)))
+#table(sni$Friends, data$Social_SNI_1_4, useNA="always")
+
+sni$Neighbours <- ifelse(data$Social_SNI_2_1 == 1, 1,
+                    ifelse(data$Social_SNI_2_1 == 2, 1, 
+                     ifelse(data$Social_SNI_2_1 > 2, 0, NA)))
+#table(sni$Neighbours, data$Social_SNI_2_1, useNA="always")
+
+sni$Colleagues <- ifelse(data$Demo_3_employ == 1, 1,
+                    ifelse(data$Demo_3_employ == 2, 0, NA))
+#table(sni$Colleagues, data$Demo_3_employ, useNA="always")
+
+sni$Schoolmates <- ifelse(data$Social_participate_4 == 1, 1,
+                    ifelse(data$Social_participate_4 == 2, 1, 
+                     ifelse(data$Social_participate_4 > 2, 0, NA)))
+#Educational and cultural activities 
+# table(sni$Schoolmates, data$Social_participate_4, useNA="always")
+
+sni$Volunteers <- ifelse(data$Social_participate_7 == 1, 1,
+                    ifelse(data$Social_participate_7 == 2, 1, 
+                     ifelse(data$Social_participate_7 > 2, 0, NA)))
+#Volunteer or charity work
+#table(sni$Volunteers, data$Social_participate_7, useNA="always")
+
+sni$Community <- ifelse(data$Social_participate_6 == 1, 1,
+                    ifelse(data$Social_participate_6 == 2, 1, 
+                     ifelse(data$Social_participate_6 > 2, 0, NA)))
+#Neighbourhood, community or professional association 
+#table(sni$Community, data$Social_participate_6, useNA="always")
+
+sni$Religious <- ifelse(data$Social_participate_2 == 1, 1,
+                    ifelse(data$Social_participate_2 == 2, 1, 
+                     ifelse(data$Social_participate_2 > 2, 0, NA)))
+#Church or religious activities 
+#table(sni$Religious, data$Social_participate_2, useNA="always")
+
+sni$SNI_total <- rowSums(sni[, c("Partner", "Children", "CloseRelatives", "Friends", "Neighbours", "Colleagues", "Schoolmates", "Volunteers", "Community", "Religious")], na.rm=TRUE)
+#table(sni$SNI_total, useNA='always')
+
+# Social Participation (CCHS / CLSA)
+
+# "Social participation was measured using 8 items developed for the Canadian Community Health Survey. A composite scale comprising a combination of responses to the social participation items has not been validated, so we classified individuals as having low social participation if they did not participate in any social activities at least once per week. Activities included family or friendship activities outside of the household, church or religious activities, sports or physical activities with others, educational or cultural activities with others, service club activities, community or professional association activities, volunteer work, or any other recreational activity involving other people." (Mick et al, 2018)
+
+# If at least one Social Participation variable has response 1 or 2, coded as '1'; if responses are 3 or greater only, then coded 0; if all are NA's, coded NA
+data$Participation <- rep(0, 527)
+data$Participation[apply(X = data[, 219:226], MARGIN = 1, FUN = function(r) any(r %in% c(1, 2)))] <- 1
+data$Participation[rowSums(is.na(data[, 219:226])) == 8] <- NA
+
+# General Relationship Satisfaction: average
+rs <- data.frame(case = c(1:527)) # Create new temp dataset
+rs[, 2:8] <- data[, 227:233] # Copy variables into temp dataset
+rs$Relation_satisf_2_1 <- 6 - rs$Relation_satisf_2_1 # Reverse-coded 4th item
+rs$Relation_satisf_5_1 <- 6 - rs$Relation_satisf_5_1 # Reverse-coded 7th item
+rs$RelSatisf_total <- rowMeans(rs[, c(2:8)], na.rm=TRUE)
+rs$RelSatisf_total[is.nan(rs$RelSatisf_total) == TRUE] <- NA
+#table(rowSums(is.na(rs[, 2:8]) == TRUE)) 
+# recall this scale is only filled out if in a permanent relationship; about 1 in 3 did not fill this out
+
+# MOS Social Support Survey
+
+# 4 domains of social support (emotional or informational, tangible, affectionate, and positive interactions)
+# "For the overall score and the score for each domain, participants were categorized as having low availability of social support if their scores were below the median." (Mick et al, 2018)
+# not clear from Mick (2018) or Sherbourne (1991) if the mean or sum should be taken; I chose the mean
+# item 13 was not in the original Sherbourne (1991) set; I classed it under POS
+# item 20 (pet) was not in the original Sherbourne (1991) set; I left it out
+
+data$SocSuppMOS_overall <- rowMeans(data[, c(234:252)], na.rm=TRUE)
+data$SocSuppMOS_overall[is.nan(data$SocSuppMOS_overall) == TRUE] <- NA
+
+data$SocSuppMOS_emoinfo <- rowMeans(data[, c('Social_MOS_2', 'Social_MOS_8', 'Social_MOS_15', 'Social_MOS_18', 'Social_MOS_3', 'Social_MOS_7', 'Social_MOS_12', 'Social_MOS_16')], na.rm=TRUE)
+data$SocSuppMOS_emoinfo[is.nan(data$SocSuppMOS_emoinfo) == TRUE] <- NA
+
+data$SocSuppMOS_tangible <- rowMeans(data[, c('Social_MOS_1', 'Social_MOS_4', 'Social_MOS_11', 'Social_MOS_14')], na.rm=TRUE)
+data$SocSuppMOS_tangible[is.nan(data$SocSuppMOS_tangible) == TRUE] <- NA
+
+data$SocSuppMOS_affection <- rowMeans(data[, c('Social_MOS_5', 'Social_MOS_9', 'Social_MOS_19')], na.rm=TRUE)
+data$SocSuppMOS_affection[is.nan(data$SocSuppMOS_affection) == TRUE] <- NA
+
+data$SocSuppMOS_positive <- rowMeans(data[, c('Social_MOS_6', 'Social_MOS_10', 'Social_MOS_17', 'Social_MOS_13')], na.rm=TRUE)
+data$SocSuppMOS_positive[is.nan(data$SocSuppMOS_positive) == TRUE] <- NA
+
+# Calculate PTA4 better ear
+data$PTA4_left <- rowMeans(data[, c('LE500c', 'LE1000c', 'LE2000c', 'LE4000c')])
+data$PTA4_right <- rowMeans(data[, c('RE500c', 'RE1000c', 'RE2000c', 'RE4000c')])
+data$PTA4_better_ear <- pmin(data$PTA4_left, data$PTA4_right)
+
+# Under subjective hearing,  "Which aids do you use?" has multiple answers per cell
+Subj_hear_4_list_temp <- paste0(data$Subj_hear_4_list, ",") # temp variable; add a comma to the end of each response, to make single digit answers available for matching procedure below
+data$Use_HA <- NA
+data$Use_HA[grep(pattern = "^1,", x = Subj_hear_4_list_temp)] <- 1
+rm(Subj_hear_4_list_temp)
+#data.frame(data$Subj_hear_4_list, Subj_hear_4_list_comma, Use_HA)
+
+# Participant group: "NH" is PTA4 better ear ≤ 25; "HL" is > 25; "HA" is defined by an answer of "1" or "1,..." on the item Subj_hear_4_list.
+data$Group <- NA
+data$Group[data$PTA4_better_ear <= 25.0] <- "NH"
+data$Group[data$PTA4_better_ear > 25.0 & is.na(data$Use_HA) == TRUE] <- "HL"
+data$Group[data$PTA4_better_ear > 25.0 & data$Use_HA == 1] <- "HA"
+
+```
+
+**List of all new variables added to existing 300**
+```{r, echo=FALSE}
+str(data[, 301:332])
+
+```
+
+### Number & percentage of participants in each group
+Those who are "NA" are not classified because there is no PTA4 information available for them.
+```{r, echo=FALSE}
+table(data$Group, useNA = "always")
+round(table(data$Group, useNA = "always") / 527 * 100, digits=1)
+
+# Why are some participants not classified? Missing audiogram data.
+#data2 <- data[is.na(data$Group), 285:332]
+
+```
+
