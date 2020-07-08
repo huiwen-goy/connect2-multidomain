@@ -98,7 +98,7 @@ data <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE)
 
 ```
 
-Of 527 respondents, 439 have full audiograms available; 85 have completely missing audiograms, and 3 have between 2 and 6 missing cells.
+Of those 444 who consented to share their clinic data, 439 have full audiograms available, and 5 have between 2 and 6 missing cells.
 ```{r, echo=FALSE}
 
 # Evaluate missing data: Audiograms
