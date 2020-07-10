@@ -75,15 +75,13 @@ output: html_document
 
 ```
 
-*Note that there hasn't yet been "cleaning" of any variables, e.g., for year of birth, some people typed in text other than four digits.*
-
 ### Evaluating data quality
 
 Of 527 respondents: 444 (84%) consented to share their clinic data and had clinic data available; 75 (14%) consented to share but their Connect ID did not match a Connect database ID; 6 (1%) did not consent to share, 2 (<1%) left the clinic data consent option blank.
 
 ```{r, echo=FALSE}
 
-# Read cleaned-up dataset, containing Qualtrics data matched to Connect data for those who consented to sharing clinic data (and those who had clinic data available)
+# Read dataset containing Qualtrics data matched to Connect data for those who consented to sharing clinic data
 
 data <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE)
 
@@ -98,7 +96,7 @@ data <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE)
 
 ```
 
-Of those 444 who consented to share their clinic data, 439 have full audiograms available, and 5 have between 2 and 6 missing cells.
+Of those 444 who consented to share their clinic data and had clinic data available, 439 have full audiograms available, and 5 have between 2 and 6 missing cells in their audiograms.
 ```{r, echo=FALSE}
 
 # Evaluate missing data: Audiograms
@@ -483,6 +481,9 @@ data$Group[data$PTA4_better_ear > 25.0 & data$Use_HA == 1] <- "HA"
 ```{r, echo=FALSE}
 str(data[, 301:332])
 
+# remove extra datasets created to help with recoding and/or scoring
+rm(list = c('cog', 'rs', 'sni', 'who'))
+
 ```
 
 ### Number & percentage of participants in each group
@@ -495,4 +496,255 @@ round(table(data$Group, useNA = "always") / 527 * 100, digits=1)
 #data2 <- data[is.na(data$Group), 285:332]
 
 ```
+
+### Cleaning variables
+
+**Year of birth**
+ 
+After cleaning, age is known for 522 respondents and unknown for 5 respondents.
+"Age" is added as a new variable.
+```{r, echo=FALSE, results='hide'}
+
+data$Demo_2_year_cleaned <- data$Demo_2_year # copy columm to new variable
+#levels(data$Demo_2_year_cleaned) # only six responses that need cleaning
+
+data$Demo_2_year_cleaned[grep(x = data$Demo_2_year_cleaned, pattern = "03 9 1945")] <- "1945"
+data$Demo_2_year_cleaned[grep(x = data$Demo_2_year_cleaned, pattern = "1948./to")] <- "1948"
+data$Demo_2_year_cleaned[grep(x = data$Demo_2_year_cleaned, pattern = "around 1959")] <- "1959"
+data$Demo_2_year_cleaned[grep(x = data$Demo_2_year_cleaned, pattern = "i939")] <- "1939"
+data$Demo_2_year_cleaned[grep(x = data$Demo_2_year_cleaned, pattern = "Nineteenhundredsixtysix")] <- "1966"
+data$Demo_2_year_cleaned[grep(x = data$Demo_2_year_cleaned, pattern = "Powell River")] <- NA
+
+data$Demo_2_year_cleaned <- as.numeric(as.character(data$Demo_2_year_cleaned))
+
+#which(nchar(as.character(data$Demo_2_year)) > 4) #228 254 271 447 488
+#which(data$Demo_2_year == "i939") #103
+#data.frame(data$Demo_2_year, data$Demo_2_year_cleaned) #check cases have been corrected
+
+# new variable: age at study
+data$Age <- 2019 - data$Demo_2_year_cleaned
+
+sum(is.na(data$Age))
+hist(data$Age, xlim = c(50, 100), breaks = 20, 
+  main = "", xlab = "Age at study (years)", col = "grey")
+
+```
+
+### Descriptive plots
+ 
+Note: All those with unknown Group have been excluded for these plots.
+ 
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+
+library(ggplot2)
+
+# Note: For now, exclude all with unknown Group
+data$Group <- factor(data$Group, levels = c("NH", "HL", "HA", "NA"))
+
+# Age
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = Age, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Age') +
+  ylab('Density') + 
+  xlim(c(50, 100)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# Comorbidities
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = Comorb_count, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Number of comorbidities') +
+  ylab('Density') + 
+  xlim(c(0, 25)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# 15iSSQ average score
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SSQ15i_avg, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('15iSSQ average score') +
+  ylab('Density') + 
+  xlim(c(0, 10)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# Social Isolation Measure
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SIM_total, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Social Isolation Measure total') +
+  ylab('Density') + 
+  xlim(c(0, 50)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# HHIE-S Social Subscale
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = HHIES_soc, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('HHIE-S Social Subscale') +
+  ylab('Density') + 
+  xlim(c(0, 20)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# HHIE-S Emotional Subscale
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = HHIES_emo, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('HHIE-S Emotional Subscale') +
+  ylab('Density') + 
+  xlim(c(0, 20)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# Cognitive Self Report
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = CSRQ_total, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Cognitive Self-Report total') +
+  ylab('Density') + 
+  xlim(c(50, 150)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# ABC balance scale
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = ABC_average, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Balance confidence') +
+  ylab('Density') + 
+  xlim(c(0, 100)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# Life satisfaction
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SWLS_average, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Life satisfaction average') +
+  ylab('Density') + 
+  xlim(c(0, 10)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# WHOQOL general quality of life
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_Q1_qol, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Quality of life (general)') +
+  ylab('Density') + 
+  xlim(c(1, 5)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# WHOQOL domain 1: Physical health
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D1, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('QoL Domain 1 (Physical)') +
+  ylab('Density') + 
+  xlim(c(0, 20)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# WHOQOL domain 2: Psychological health
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D2, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('QoL Domain 2 (Psychological)') +
+  ylab('Density') + 
+  xlim(c(0, 20)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# WHOQOL domain 3: Social relationships
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D3, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('QoL Domain 3 (Social)') +
+  ylab('Density') + 
+  xlim(c(0, 20)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# WHOQOL domain 4: Environment
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D4, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('QoL Domain 4 (Environment)') +
+  ylab('Density') + 
+  xlim(c(0, 20)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# PHQ4
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = PHQ4_total, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('PHQ4: Anxiety and Depression') +
+  ylab('Density') + 
+  xlim(c(0, 20)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+```
+
+**Loneliness (re-coded as binary variable)**
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+
+# Loneliness
+lonely <- data.frame(Group = data[is.na(data$Group) == FALSE, ]$Group, 
+  Lonely = data[is.na(data$Group) == FALSE, ]$Lonely)
+lonely$Status <- factor(data[is.na(data$Group) == FALSE, ]$Lonely, 
+  levels=c(0, 1), labels=c("Not lonely", "Lonely"))
+#table(lonely$Group, lonely$Status)
+round(prop.table(table(lonely$Group, lonely$Status), margin=1), digits=3) * 100
+```
+ 
+**Social participation (re-coded as binary variable)**
+ 
+Social participation: Including all participants
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+
+# Social Participation
+socpart <- data.frame(Group = data[is.na(data$Group) == FALSE, ]$Group, 
+  Participation = data[is.na(data$Group) == FALSE, ]$Participation)
+socpart$Status <- factor(data[is.na(data$Group) == FALSE, ]$Participation, 
+  levels=c(0, 1), labels=c("Low", "High"))
+#table(socpart$Group, socpart$Status)
+round(prop.table(table(socpart$Group, socpart$Status), margin=1), digits=3) * 100
+```
+  
+Social participation: Only including those who are retired
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+
+# Social Participation
+socpart2 <- data[is.na(data$Group) == FALSE & data$Demo_3_employ == 2, c('Group', 'Participation')]
+socpart2$Status <- factor(socpart2$Participation, levels=c(0, 1), labels=c("Low", "High"))
+#table(socpart2$Group, socpart2$Status)
+round(prop.table(table(socpart2$Group, socpart2$Status), margin=1), digits=3) * 100
+```
+ 
+**Correlation among subscales of MOS Social Support**
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+
+# MOS Social Support
+mos <- data.frame(data[, c('SocSuppMOS_emoinfo', 'SocSuppMOS_tangible', 'SocSuppMOS_affection',  'SocSuppMOS_positive')])
+library(psych)
+lowerMat(cor(mos, use="complete.obs", method="pearson"))
+
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SocSuppMOS_overall, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('MOS Social Support overall') +
+  ylab('Density') + 
+  xlim(c(1, 5)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+```
+
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+
+# PTA4 better ear
+ggplot(data[is.na(data$Group) == FALSE, ], aes(x = PTA4_better_ear, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('PTA4 better ear (dB HL)') +
+  ylab('Density') + 
+  xlim(c(0, 60)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+```
+
+
+
+
+
 
