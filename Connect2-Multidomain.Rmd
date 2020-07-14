@@ -10,10 +10,9 @@ output: html_document
 1. Downloaded data from Qualtrics (numeric version, in .csv format), on July 2, 2020. Recorded responses n = 553.
 2. Deleted second and third header rows (rows 2 and 3).
 3. Sort by column "Consent_1_main", and deleted participants who declined to participate; i.e. responded with option 2 or 3 (n = 26). Note: leaves 527 participants.
-4. Created Qualtrics ID "key" for later matching with Connect IDs, with five columns: ResponseId, RecipientLastName, RecipientFirstName, Consent_1_main, Consent_2_clinic; file named "id_qualtrics.csv".
+4. Created Qualtrics ID "key" for matching with Connect IDs, with five columns: ResponseId, RecipientLastName, RecipientFirstName, Consent_1_main, Consent_2_clinic; file named "id_qualtrics.csv".
 5. Deleted columns from main Qualtrics dataset: IPAddress, RecipientLastName, RecipientFirstName, RecipientEmail, ExternalReference, LocationLatitude, LocationLongitude, DistributionChannel, UserLanguage
-6. Match Connect IDs to Qualtrics IDs using first and last names.
-
+6. Matched Connect IDs to Qualtrics IDs using first and last names.
 ```{r, include=FALSE}
 
 ## Match Connect IDs to Qualtrics IDs
@@ -55,7 +54,7 @@ output: html_document
 
 ```
 
-7. Match audiometric and other clinic info to Qualtrics data using Qualtrics IDs.
+7. Matched audiometric and other clinic info to Qualtrics data using Qualtrics IDs.
 ```{r, echo=FALSE}
 
 # Qualtrics data
@@ -83,8 +82,7 @@ output: html_document
 
 ### Evaluating data quality
 
-Of 527 respondents: 453 were matched to Connect IDs; 6 were matched but declined to share info; 2 were matched but did not fill out consent option to share info and are assumed to have declined; 66 were unmatched to Connect IDs.
-
+Of 527 respondents: 453 were matched to Connect IDs; 6 were matched but declined to share info; 2 were matched but did not fill out consent option to share info and are assumed to have declined; 66 were unmatched to Connect IDs (see "cases.pdf").
 ```{r, echo=FALSE}
 
 # Read dataset containing Qualtrics data matched to Connect data for those who consented to sharing clinic data
@@ -148,39 +146,56 @@ Of the 11 completely missing audiograms, 7 were recovered from the original Conn
 
 ```
 
-Evaluating only the items in the questionnaire that make up the shortest possible path through the survey, i.e., skipping all conditional items that only appear given a 'yes' answer earlier, 93.7% of repondents answered at least 90% of questionnaire items. 
+### Read current dataset
+Qualtrics_data_2020.07.13.csv 
+```{r, echo=FALSE}
+
+data <- read.csv("Qualtrics_data_2020.07.13.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
+
+```
+
+### Data inclusion criterion ###
+ 
+"Non-conditional items" are items in the questionnaire that make up the shortest possible path through the survey, i.e., skipping all conditional items that only appear given a 'yes' answer earlier. The threshold we decided on for including a participant's data is that they should have less than 10% missing cells in non-conditional items. Using this threshold, 497 (94.3%) participants are included.
+ 
+*Proportion_missing_data* and *Include_over90data* are added as new variables.
 ```{r, echo=FALSE}
 
 # Evaluate missing data: Questionnaire items
 
-data <- read.csv("Qualtrics_data_2020.07.13.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
-
 # Only items comprising the shortest path through survey, excluding consent, metadata, and conditional questions (213 items remaining)
 d2 <- data[, c(14:18, 20:53, 58:60, 62, 64, 69:71, 82, 87:121, 124:149, 162:226, 234:272)]
 
-propNA <- rowSums(is.na(d2))/213
-hist(propNA, breaks = 100, xlim=c(0, 1), col = 'gray', 
-  main = "Items comprising shortest path through survey", 
-  ylab = "Count of participants", xlab = "Proportion NA cells in submitted survey")
+data$Proportion_missing_data <- rowSums(is.na(d2))/213
+data$Include_over90data <- ifelse(data$Proportion_missing_data <= 0.1, 1, 0)
+
+sum(data$Include_over90data)
+sum(data$Include_over90data)/nrow(data)
+
+rm(d2)
+
+#propNA <- rowSums(is.na(d2))/213
+#hist(propNA, breaks = 100, xlim=c(0, 1), col = 'gray', 
+  #main = "Items comprising shortest path through survey", 
+  #ylab = "Count of participants", xlab = "Proportion NA cells in submitted survey")
 
 # Average percent of missing items per participant = 4.148738%
 #mean(propNA)*100
 
-# Cumulative table of available (non-NA) data
-propPresent <- 1 - propNA
-tablePresent <- as.data.frame(table(propPresent))
-tablePresent$Cumfreq <- cumsum(tablePresent$Freq)
-tablePresent$percentPresent <- as.numeric(levels(tablePresent$propPresent))[tablePresent$propPresent] * 100
-tablePresent$CumPercent <- cumsum(tablePresent$Freq)/527 * 100
-
-#100 - 6.2618596
+# Cumulative table of present (non-NA) data
+#propPresent <- 1 - propNA
+#tablePresent <- as.data.frame(table(propPresent))
+#tablePresent$Cumfreq <- cumsum(tablePresent$Freq)
+#tablePresent$percentPresent <- as.numeric(levels(tablePresent$propPresent))[tablePresent$propPresent] * 100
+#tablePresent$CumPercent <- cumsum(tablePresent$Freq)/527 * 100
+#tablePresent
+# row 25: 93.73814% of participants have at least 90.140845% of data present
 
 ```
 
 ### Calculating composite scores
 
 **Current list of composite scores:**
- 
 - Physical health: Total count of co-morbidities
 - SSQ15i: Average score, and three average sub-scores
 - Social Isolation Measure (SIM): Total score
@@ -196,7 +211,7 @@ tablePresent$CumPercent <- cumsum(tablePresent$Freq)/527 * 100
 - Social Participation (CCHS / CLSA): Recoding procedure in Mick et al. (2018)
 - General Relationship Satisfaction: Total score
 - MOS Social Support Survey: Scoring procedure in Mick et al. (2018)
-- PTA4 better ear
+- PTA4 left, right, and better ear
 
 Unless there were specific rules about how to deal with NAs in a scoring procedure, for averages, I generally used na.rm=TRUE, calculating the average without including any NA cells. For totals, I generally used na.rm=FALSE, setting the row total to be NA if there was one or more NA cells (exceptions are the Social Network Index and Social Participant score calculations).
  
@@ -499,7 +514,7 @@ data$SocSuppMOS_affection[is.nan(data$SocSuppMOS_affection) == TRUE] <- NA
 data$SocSuppMOS_positive <- rowMeans(data[, c('Social_MOS_6', 'Social_MOS_10', 'Social_MOS_17', 'Social_MOS_13')], na.rm=TRUE)
 data$SocSuppMOS_positive[is.nan(data$SocSuppMOS_positive) == TRUE] <- NA
 
-# Calculate PTA4 better ear
+# Calculate PTA4 left, right, and better ear
 data$PTA4_left <- rowMeans(data[, c('LE500c', 'LE1000c', 'LE2000c', 'LE4000c')])
 data$PTA4_right <- rowMeans(data[, c('RE500c', 'RE1000c', 'RE2000c', 'RE4000c')])
 data$PTA4_better_ear <- pmin(data$PTA4_left, data$PTA4_right)
@@ -519,32 +534,10 @@ data$Group[data$PTA4_better_ear > 25.0 & data$Use_HA == 1] <- "HA"
 
 ```
 
-**List of all new variables added to existing 300**
-```{r, echo=FALSE}
-str(data[, 301:332])
-
-# remove extra datasets created to help with recoding and/or scoring
-rm(list = c('cog', 'rs', 'sni', 'who'))
-
-```
-
-### Number & percentage of participants in each group
-Those who are "NA" are not classified because there is no PTA4 information available for them.
-```{r, echo=FALSE}
-table(data$Group, useNA = "always")
-round(table(data$Group, useNA = "always") / 527 * 100, digits=1)
-
-# Why are some participants not classified? Missing audiogram data.
-#data2 <- data[is.na(data$Group), 285:332]
-
-```
-
 ### Cleaning variables
-
-**Year of birth**
  
-After cleaning, age is known for 522 respondents and unknown for 5 respondents.
-"Age" is added as a new variable.
+**Year of birth**
+*Age* is added as a new variable.
 ```{r, echo=FALSE, results='hide'}
 
 data$Demo_2_year_cleaned <- data$Demo_2_year # copy columm to new variable
@@ -566,25 +559,50 @@ data$Demo_2_year_cleaned <- as.numeric(as.character(data$Demo_2_year_cleaned))
 # new variable: age at study
 data$Age <- 2019 - data$Demo_2_year_cleaned
 
-sum(is.na(data$Age))
-hist(data$Age, xlim = c(50, 100), breaks = 20, 
-  main = "", xlab = "Age at study (years)", col = "grey")
+#sum(is.na(data$Age)) # Five NA's
+#hist(data$Age, xlim = c(50, 100), breaks = 20, main = "", xlab = "Age at study (years)", col = "grey")
 
 ```
 
+### List of all new variables
+```{r, echo=FALSE}
+
+str(data[, 301:336])
+
+# remove extra datasets created to help with recoding and/or scoring
+rm(list = c('cog', 'rs', 'sni', 'who'))
+
+```
+
+### Number & percentage of participants in each group
+Those who are "NA" are not classified because there is no PTA4 information available for them.
+```{r, echo=FALSE}
+
+table(data$Group, useNA = "always")
+round(table(data$Group, useNA = "always") / 527 * 100, digits=1)
+
+```
+
+
 ### Descriptive plots
  
-Note: All those with unknown Group have been excluded for these plots.
+Note: All those with unknown Group and all those with >10% missing data have been excluded for these plots.
+```{r, echo=FALSE}
+
+# Set order of group factor levels
+data$Group <- factor(data$Group, levels = c("NH", "HL", "HA", "NA"))
+
+# Remove those with unknown Group and >10% missing data; leaves 424
+data2 <- data[is.na(data$Group) == FALSE & data$Include_over90data == 1, ]
+
+```
  
 ```{r, echo=FALSE, message = FALSE, warning = FALSE}
 
 library(ggplot2)
 
-# Note: For now, exclude all with unknown Group
-data$Group <- factor(data$Group, levels = c("NH", "HL", "HA", "NA"))
-
 # Age
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = Age, fill = Group)) + 
+ggplot(data2, aes(x = Age, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('Age') +
   ylab('Density') + 
@@ -592,8 +610,17 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = Age, fill = Group)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
+# PTA4 better ear
+ggplot(data2, aes(x = PTA4_better_ear, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('PTA4 better ear (dB HL)') +
+  ylab('Density') + 
+  xlim(c(0, 60)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
 # Comorbidities
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = Comorb_count, fill = Group)) + 
+ggplot(data2, aes(x = Comorb_count, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('Number of comorbidities') +
   ylab('Density') + 
@@ -602,7 +629,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = Comorb_count, fill = Group)) 
       element_text(size = 20))
 
 # 15iSSQ average score
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SSQ15i_avg, fill = Group)) + 
+ggplot(data2, aes(x = SSQ15i_avg, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('15iSSQ average score') +
   ylab('Density') + 
@@ -611,7 +638,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SSQ15i_avg, fill = Group)) +
       element_text(size = 20))
 
 # Social Isolation Measure
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SIM_total, fill = Group)) + 
+ggplot(data2, aes(x = SIM_total, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('Social Isolation Measure total') +
   ylab('Density') + 
@@ -620,7 +647,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SIM_total, fill = Group)) +
       element_text(size = 20))
 
 # HHIE-S Social Subscale
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = HHIES_soc, fill = Group)) + 
+ggplot(data2, aes(x = HHIES_soc, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('HHIE-S Social Subscale') +
   ylab('Density') + 
@@ -629,7 +656,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = HHIES_soc, fill = Group)) +
       element_text(size = 20))
 
 # HHIE-S Emotional Subscale
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = HHIES_emo, fill = Group)) + 
+ggplot(data2, aes(x = HHIES_emo, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('HHIE-S Emotional Subscale') +
   ylab('Density') + 
@@ -637,8 +664,8 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = HHIES_emo, fill = Group)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
-# Cognitive Self Report
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = CSRQ_total, fill = Group)) + 
+# Cognitive Self Report; note 68 missing rows
+ggplot(data2, aes(x = CSRQ_total, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('Cognitive Self-Report total') +
   ylab('Density') + 
@@ -647,7 +674,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = CSRQ_total, fill = Group)) +
       element_text(size = 20))
 
 # ABC balance scale
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = ABC_average, fill = Group)) + 
+ggplot(data2, aes(x = ABC_average, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('Balance confidence') +
   ylab('Density') + 
@@ -656,7 +683,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = ABC_average, fill = Group)) +
       element_text(size = 20))
 
 # Life satisfaction
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SWLS_average, fill = Group)) + 
+ggplot(data2, aes(x = SWLS_average, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('Life satisfaction average') +
   ylab('Density') + 
@@ -665,7 +692,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SWLS_average, fill = Group)) 
       element_text(size = 20))
 
 # WHOQOL general quality of life
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_Q1_qol, fill = Group)) + 
+ggplot(data2, aes(x = WHOQOL_Q1_qol, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('Quality of life (general)') +
   ylab('Density') + 
@@ -673,8 +700,17 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_Q1_qol, fill = Group))
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
+# WHOQOL health-related quality of life
+ggplot(data2, aes(x = WHOQOL_Q2_health, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Quality of life (health)') +
+  ylab('Density') + 
+  xlim(c(1, 5)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
 # WHOQOL domain 1: Physical health
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D1, fill = Group)) + 
+ggplot(data2, aes(x = WHOQOL_D1, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('QoL Domain 1 (Physical)') +
   ylab('Density') + 
@@ -683,7 +719,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D1, fill = Group)) +
       element_text(size = 20))
 
 # WHOQOL domain 2: Psychological health
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D2, fill = Group)) + 
+ggplot(data2, aes(x = WHOQOL_D2, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('QoL Domain 2 (Psychological)') +
   ylab('Density') + 
@@ -692,7 +728,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D2, fill = Group)) +
       element_text(size = 20))
 
 # WHOQOL domain 3: Social relationships
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D3, fill = Group)) + 
+ggplot(data2, aes(x = WHOQOL_D3, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('QoL Domain 3 (Social)') +
   ylab('Density') + 
@@ -701,7 +737,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D3, fill = Group)) +
       element_text(size = 20))
 
 # WHOQOL domain 4: Environment
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D4, fill = Group)) + 
+ggplot(data2, aes(x = WHOQOL_D4, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('QoL Domain 4 (Environment)') +
   ylab('Density') + 
@@ -710,7 +746,7 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = WHOQOL_D4, fill = Group)) +
       element_text(size = 20))
 
 # PHQ4
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = PHQ4_total, fill = Group)) + 
+ggplot(data2, aes(x = PHQ4_total, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('PHQ4: Anxiety and Depression') +
   ylab('Density') + 
@@ -719,40 +755,45 @@ ggplot(data[is.na(data$Group) == FALSE, ], aes(x = PHQ4_total, fill = Group)) +
       element_text(size = 20))
 ```
 
-**Loneliness (re-coded as binary variable)**
+**Loneliness**
 ```{r, echo=FALSE, message = FALSE, warning = FALSE}
 
-# Loneliness
-lonely <- data.frame(Group = data[is.na(data$Group) == FALSE, ]$Group, 
-  Lonely = data[is.na(data$Group) == FALSE, ]$Lonely)
-lonely$Status <- factor(data[is.na(data$Group) == FALSE, ]$Lonely, 
-  levels=c(0, 1), labels=c("Not lonely", "Lonely"))
+# Create separate dataset for Loneliness variable
+lonely <- data.frame(Group = data2$Group, Lonely = data2$Lonely)
+# Re-label binary variable created previously
+lonely$Status <- factor(data2$Lonely, levels=c(0, 1), labels=c("Not lonely", "Lonely"))
 #table(lonely$Group, lonely$Status)
 round(prop.table(table(lonely$Group, lonely$Status), margin=1), digits=3) * 100
+
+rm(lonely)
 ```
  
-**Social participation (re-coded as binary variable)**
+**Social participation**
  
 Social participation: Including all participants
 ```{r, echo=FALSE, message = FALSE, warning = FALSE}
 
-# Social Participation
-socpart <- data.frame(Group = data[is.na(data$Group) == FALSE, ]$Group, 
-  Participation = data[is.na(data$Group) == FALSE, ]$Participation)
-socpart$Status <- factor(data[is.na(data$Group) == FALSE, ]$Participation, 
-  levels=c(0, 1), labels=c("Low", "High"))
+# Create separate dataset for Social Participation
+socpart <- data.frame(Group = data2$Group, Participation = data2$Participation)
+# Re-label binary variable created previously
+socpart$Status <- factor(data2$Participation, levels=c(0, 1), labels=c("Low", "High"))
 #table(socpart$Group, socpart$Status)
 round(prop.table(table(socpart$Group, socpart$Status), margin=1), digits=3) * 100
+
+rm(socpart)
 ```
   
 Social participation: Only including those who are retired
 ```{r, echo=FALSE, message = FALSE, warning = FALSE}
 
 # Social Participation
-socpart2 <- data[is.na(data$Group) == FALSE & data$Demo_3_employ == 2, c('Group', 'Participation')]
+socpart2 <- data.frame(Group = data2[data2$Demo_3_employ == 2, ]$Group, 
+  Participation = data2[data2$Demo_3_employ == 2, ]$Participation)
 socpart2$Status <- factor(socpart2$Participation, levels=c(0, 1), labels=c("Low", "High"))
 #table(socpart2$Group, socpart2$Status)
 round(prop.table(table(socpart2$Group, socpart2$Status), margin=1), digits=3) * 100
+
+rm(socpart2)
 ```
  
 **Correlation among subscales of MOS Social Support**
@@ -763,28 +804,142 @@ mos <- data.frame(data[, c('SocSuppMOS_emoinfo', 'SocSuppMOS_tangible', 'SocSupp
 library(psych)
 lowerMat(cor(mos, use="complete.obs", method="pearson"))
 
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = SocSuppMOS_overall, fill = Group)) + 
+ggplot(data2, aes(x = SocSuppMOS_emoinfo, fill = Group)) + 
   geom_density(alpha=0.25) + 
-  xlab('MOS Social Support overall') +
+  xlab('MOS Social Support (Emo/Info)') +
   ylab('Density') + 
   xlim(c(1, 5)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
-```
 
-```{r, echo=FALSE, message = FALSE, warning = FALSE}
-
-# PTA4 better ear
-ggplot(data[is.na(data$Group) == FALSE, ], aes(x = PTA4_better_ear, fill = Group)) + 
+ggplot(data2, aes(x = SocSuppMOS_tangible, fill = Group)) + 
   geom_density(alpha=0.25) + 
-  xlab('PTA4 better ear (dB HL)') +
+  xlab('MOS Social Support (Tangible)') +
   ylab('Density') + 
-  xlim(c(0, 60)) +
+  xlim(c(1, 5)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+ggplot(data2, aes(x = SocSuppMOS_affection, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('MOS Social Support (Affection)') +
+  ylab('Density') + 
+  xlim(c(1, 5)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+ggplot(data2, aes(x = SocSuppMOS_positive, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('MOS Social Support (Positive)') +
+  ylab('Density') + 
+  xlim(c(1, 5)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
 ```
 
+### Examining co-morbidities
+ 
+```{r, echo=FALSE}
+
+#Co-morbidities [,22:52]
+# Types of health issues: vision, "physical", arthritis, neuro/cognitive, psychological
+
+#1. cataracts - y
+##table(data[, 22], useNA='always')
+#2. other eye disorder, e.g., glaucoma or macular degeneration - y
+##table(data[, 23], useNA='always')
+#3. allergies
+#table(data[, 24], useNA='always')
+#4. asthma
+#table(data[, 25], useNA='always')
+#5. lung disorder, including emphysema, chronic bronchitis, chronic obstructive pulmonary disease, or #chronic changes in lungs due to smoking
+#table(data[, 26], useNA='always')
+#6. diabetes, borderline diabetes or high blood sugar - y
+#table(data[, 27], useNA='always')
+#7. under-active thyroid gland, sometimes called hypothyroidism or myxedema
+#table(data[, 28], useNA='always')
+#8. over-active thyroid gland, sometimes called hyperthyroidism or Graves’ disease
+#table(data[, 29], useNA='always')
+#9. cancer
+#table(data[, 30], useNA='always')
+#10. heart disease, including congestive heart failure, angina, heart attack or myocardial infarction - y
+#table(data[, 31], useNA='always')
+#11. peripheral vascular disease or poor circulation in your limbs
+#table(data[, 32], useNA='always')
+#12. high blood pressure or hypertension
+#table(data[, 33], useNA='always')
+#13. stroke or cerebrovascular accident (CVA), including mini-stroke or Transient Ischemic Attack (TIA)
+#table(data[, 34], useNA='always')
+#14. kidney disease
+#table(data[, 35], useNA='always')
+#15. urinary incontinence
+#table(data[, 36], useNA='always')
+#16. intestinal or stomach ulcers
+#table(data[, 37], useNA='always')
+#17. bowel disorder such as Crohn’s Disease, ulcerative colitis, or Irri#table Bowel Syndrome
+#table(data[, 38], useNA='always')
+#18. bowel incontinence
+#table(data[, 39], useNA='always')
+#19. osteoarthritis
+#table(data[, 40], useNA='always')
+#20. rheumatoid arthritis
+#table(data[, 41], useNA='always')
+#21. any other type of arthritis
+#table(data[, 42], useNA='always')
+#22. osteoporosis, also called low bone mineral density, or thin, brittle, or weak bones
+#table(data[, 43], useNA='always')
+#23. back problems, excluding fibromyalgia and arthritis
+#table(data[, 44], useNA='always')
+#24. memory problems
+#table(data[, 45], useNA='always')
+#25. dementia or Alzheimer’s disease
+#table(data[, 46], useNA='always')
+#26. Parkinsonism or Parkinson’s disease
+#table(data[, 47], useNA='always')
+#27. multiple sclerosis
+#table(data[, 48], useNA='always')
+#28. epilepsy
+#table(data[, 49], useNA='always')
+#29. migraine headaches
+#table(data[, 50], useNA='always')
+#30. anxiety disorder, including a phobia, obsessive-compulsive disorder or a panic disorder
+#table(data[, 51], useNA='always')
+#31. depression disorder, including manic depression, bipolar disorder, mania, or dysthymia
+#table(data[, 52], useNA='always')
+
+
+```
+
+### Change in loneliness
+ 
+The same question on loneliness was asked in Connect 1 as in Connect 2: "In the past week, how often did you feel lonely? All of the time, Occasionally, Some of the time, Rarely or never."
+ 
+```{r, echo=FALSE}
+
+# How many people have that question at Time 1 and Time 2, and of those, how many people obtained HA?
+
+
+
+
+```
+
+### Loneliness, social support, HHIE subscales, SSQ
+
+```{r, echo=FALSE}
+
+#data$Group
+#data$Lonely
+#data$SocSuppMOS_overall
+#data$SocSuppMOS_emoinfo
+#data$SocSuppMOS_tangible
+#data$SocSuppMOS_affection
+#data$SocSuppMOS_positive
+#data$HHIES_emo
+#data$HHIES_soc
+#data$SSQ15i_avg
+
+```
 
 
 
