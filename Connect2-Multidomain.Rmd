@@ -25,7 +25,7 @@ output: html_document
 #sum(duplicated(qualtrics[, c('RecipientFirstName', 'RecipientLastName')]))
 
 # Connect names & id
-#connect <- read.csv("Name_ID.csv", header=TRUE, na.strings=c(""))
+#connect <- read.csv("Name_ID.csv", header=TRUE)
 
 # Merge by first and last names
 #ids <- merge(x = qualtrics, y = connect, all.x = TRUE, by.x = c('RecipientFirstName', 'RecipientLastName'), by.y = c('Firstname', 'Lastname'))
@@ -47,7 +47,11 @@ output: html_document
 #  return(fraglist)
 #}
 
-# Final result: Of 527 respondents who consented to participate, 453 matched, 6 declined to share info, 2 did not fill out consent option to share info, 66 unmatched to Connect IDs.
+# Check
+#id <- read.csv("id_qualtrics_connect.csv", header=TRUE, na.strings = c("", "NA", "<NA>"))
+# table(id$Consent_2_clinic, id$Manual, useNA = 'always')
+
+# Final result: Of 527 respondents who consented to participate, 453 matched, 6 matched but declined to share info, 2 matched but did not fill out consent option to share info, 66 unmatched to Connect IDs.
 
 ```
 
@@ -55,56 +59,92 @@ output: html_document
 ```{r, echo=FALSE}
 
 # Qualtrics data
-#qdata <- read.csv("Multidomain_2020.07.02_18.16_numeric.csv", header=TRUE, na.strings=c(""))
+#qdata <- read.csv("Multidomain_2020.07.02_18.16_numeric.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
 
 # ID key
-#id <- read.csv("id_qualtrics_connect.csv", header=TRUE)
-#id <- id[, -c(2, 3, 5)]
+#id <- read.csv("id_qualtrics_connect.csv", header=TRUE, na.strings = c("", "NA", "<NA>"))
+#id <- id[, -c(2, 3, 5)] # leave column 5 in to include Manual
 
 # Clinic data
-#cdata <- read.csv("clinic.csv", header=TRUE, na.strings=c(""))
+#cdata <- read.csv("clinic.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
 
 # Merge Connect IDs to Qualtrics data
 #qdata2 <- merge(x = qdata, y = id, all.x = TRUE, by.x = 'ResponseId', by.y = 'QualtricsId')
 
 # Merge clinic data to Qualtrics data
 #data <- merge(x = qdata2, y = cdata, all.x = TRUE, by.x = 'ConnectId', by.y = 'ID')
-#write.csv(data, '~/Desktop/Qualtrics_data_2020.07.06.csv')
 
 # Renamed columns 15iSSQ with SSQ15i so that column names start with non-numeric character
+#colnames(data)[87:101] <- c('SSQ15i_1_1', 'SSQ15i_1_2', 'SSQ15i_1_3', 'SSQ15i_1_4', 'SSQ15i_1_5', 'SSQ15i_2_6', 'SSQ15i_2_7', 'SSQ15i_2_8', 'SSQ15i_2_9', 'SSQ15i_2_10', 'SSQ15i_3_11', 'SSQ15i_3_12', 'SSQ15i_3_13', 'SSQ15i_3_14', 'SSQ15i_3_15')
+
+#write.csv(data, '~/Desktop/Qualtrics_data_2020.07.06.csv')
 
 ```
 
 ### Evaluating data quality
 
-Of 527 respondents: 444 (84%) consented to share their clinic data and had clinic data available; 75 (14%) consented to share but their Connect ID did not match a Connect database ID; 6 (1%) did not consent to share, 2 (<1%) left the clinic data consent option blank.
+Of 527 respondents: 453 were matched to Connect IDs; 6 were matched but declined to share info; 2 were matched but did not fill out consent option to share info and are assumed to have declined; 66 were unmatched to Connect IDs.
 
 ```{r, echo=FALSE}
 
 # Read dataset containing Qualtrics data matched to Connect data for those who consented to sharing clinic data
 
-data <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE)
+#data <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
 
-# Count of respondents with matching clinic data
-#d2 <- data[, c('Consent_2_clinic', 'ConnectId', 'ID.clinic')] #527
-#nrow(d2[d2$Consent_2_clinic == 1 & is.na(d2$ID.clinic) == FALSE,]) #444
-#nrow(d2[d2$Consent_2_clinic == 1 & is.na(d2$Consent_2_clinic) == FALSE & #is.na(d2$ID.clinic) == TRUE,]) #75
-#nrow(d2[d2$Consent_2_clinic == 2 & is.na(d2$Consent_2_clinic) == FALSE,]) #6
-#nrow(d2[is.na(d2$Consent_2_clinic) == TRUE & is.na(d2$ID.clinic) == TRUE,]) #2
+#d2 <- data[, c('Consent_2_clinic', 'ConnectId', 'ID.clinic', 'Manual')]
+# only have Manual variable available if left in 'id' dataset
+#table(d2$Manual, d2$Consent_2_clinic, useNA = 'always')
 
-# Conclusion: Of 527 respondents, 444 (84%) consented to share their clinic data and had clinic data available; 75 (14%) consented to share but their Connect ID did not match a Connect database ID; 6 (1%) did not consent to share, 2 (<1%) left the clinic data consent option blank.
+# Make sure those with no clinic consent have clinic data blanked out
+#data[data$Consent_2_clinic == 2 & is.na(data$Consent_2_clinic) == FALSE, 274:300]
+#data[is.na(data$Consent_2_clinic) == TRUE, 274:300]
 
 ```
 
-Of those 444 who consented to share their clinic data and had clinic data available, 439 have full audiograms available, and 5 have between 2 and 6 missing cells in their audiograms.
+Of those 453 who consented to share their clinic data and had clinic IDs available, 439 had full audiograms, 3 had a few cells missing from their audiograms, and 11 had completely missing audiograms.
+Of the 11 completely missing audiograms, 7 were recovered from the original Connect 1 dataset (before any cleaning). Final result: 446 full audiograms, 3 partial, 4 missing.
 ```{r, echo=FALSE}
 
 # Evaluate missing data: Audiograms
 
-# 444 respondents with available clinic data
-#d2 <- data[data$Consent_2_clinic == 1 & is.na(data$ID.clinic) == FALSE, ]
-# 439 have full audiogram available, 5 have missing cells in audiogram
+#data <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
+#d1 <- data[data$Consent_2_clinic == 1 & is.na(data$ConnectId) == FALSE, ]
 #table(rowSums(is.na(d2[, 289:300])))
+#d1[which(rowSums(is.na(d1[, 289:300])) == 12), 1]
+
+#c1 <- read.csv("Connect_Data_20190730_merged_consent_cleaned_new", header=T, na.strings=c("", "NA"))
+#d1[which(rowSums(is.na(d1[, 289:300])) == 12), 1] %in% c1$ID
+# [1] FALSE FALSE FALSE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE
+# Of the 11 with missing audiograms, 9 are not present in the n=3516 cleaned dataset for Connect 1.
+# The 2 that are present in the cleaned dataset have missing audiograms there as well.
+
+#c0 <- read.csv("Connect_Data_20190730.csv", header=T, na.strings=c("", "NA"))
+#d1[which(rowSums(is.na(d1[, 289:300])) == 12), 1] %in% c0$ID
+# [1]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE FALSE  TRUE FALSE  TRUE  TRUE
+# Of the 9 that are not present in the cleaned Connect 1 dataset, 7 are present in the original Connect 1 dataset of n=4630, before any cleaning.
+
+# Salvaging audios where available in n=4630 Connect 1 dataset
+#audios <- c0[c0$ID %in% d2[which(rowSums(is.na(d2[, 289:300])) == 12), 1], c(1, 115:145)]
+
+#audio <- read.csv("audios.csv", header=TRUE, na.strings=c("", "NA"))
+
+#d1 <- read.csv("Qualtrics_data_2020.07.06.csv", header=TRUE, na.strings=c("", "NA"))
+
+#d2 <- d1
+# Put in missing audiograms for 7 people
+#d2[d2$ConnectId == 'C2600266' & is.na(d2$ConnectId)==F, 289:300] <- audio[audio$ID == 'C2600266', 3:14]
+#d2[d2$ConnectId == 'C2619115' & is.na(d2$ConnectId)==F, 289:300] <- audio[audio$ID == 'C2619115', 3:14]
+#d2[d2$ConnectId == 'C2628007' & is.na(d2$ConnectId)==F, 289:300] <- audio[audio$ID == 'C2628007', 3:14]
+#d2[d2$ConnectId == 'C2635546' & is.na(d2$ConnectId)==F, 289:300] <- audio[audio$ID == 'C2635546', 3:14]
+#d2[d2$ConnectId == 'C2641021' & is.na(d2$ConnectId)==F, 289:300] <- audio[audio$ID == 'C2641021', 3:14]
+#d2[d2$ConnectId == 'C2619063' & is.na(d2$ConnectId)==F, 289:300] <- audio[audio$ID == 'C2619063', 3:14]
+#d2[d2$ConnectId == 'C2629169' & is.na(d2$ConnectId)==F, 289:300] <- audio[audio$ID == 'C2629169', 3:14]
+
+# Check
+#d1[which(rowSums(is.na(d1[, 289:300])) == 12), 1]
+#d2[which(rowSums(is.na(d2[, 289:300])) == 12), 1]
+
+#write.csv(d2, '~/Desktop/Qualtrics_data_2020.07.13.csv')
 
 ```
 
@@ -112,6 +152,8 @@ Evaluating only the items in the questionnaire that make up the shortest possibl
 ```{r, echo=FALSE}
 
 # Evaluate missing data: Questionnaire items
+
+data <- read.csv("Qualtrics_data_2020.07.13.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
 
 # Only items comprising the shortest path through survey, excluding consent, metadata, and conditional questions (213 items remaining)
 d2 <- data[, c(14:18, 20:53, 58:60, 62, 64, 69:71, 82, 87:121, 124:149, 162:226, 234:272)]
