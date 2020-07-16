@@ -3,6 +3,8 @@ The papers in this folder are the sources of the individual items in the "multid
 Basic demographic variables, subjective vision and hearing, the list of co-morbidities, the list of mobility aids, perceived loneliness, social network, social participation, and social support items are from this CLSA questionnaire (main wave v4.0 June 2018):
 https://clsa-elcv.ca/doc/446
 
+Loneliness, social network index, social participation, and social support were scored according to the procedures in Mick et al. (2018).
+
 The tinnitus-related items from the Canadian Health Measures Survey (cycle 4) are found here:
 https://www23.statcan.gc.ca/imdb/p2SV.pl?Function=getSurvey&Id=148760
 
