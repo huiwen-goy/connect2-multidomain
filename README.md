@@ -1,6 +1,6 @@
 # connect2-multidomain
 
-This is the project where we did a second round of data collection from the Connect pool that did the original stigma-related survey. This survey was done in Qualtrics, and included questions on multiple domains of health (sensory, cognitive, physical, mental and psychosocial), as well as measures of social participation and general- and health-specific quality of life. A majority of participants agreed to let us access their Connect clinic data, which included a full audiogram and information on hearing aid uptake.    
+This is the project where we did a second round of data collection from the Connect pool that did the original stigma-related survey. This survey was done in Qualtrics, and included questions on multiple domains of health (sensory, cognitive, physical, mental and psychosocial), as well as measures of social participation and general- and domain-specific quality of life. The majority of participants agreed to let us access their Connect clinic data, which included a full audiogram and information on hearing aid uptake.    
 
 The Rmd file contains the code for: merging Qualtrics data with Connect data; recoding and creating new variables; a bit of cleaning (for year of birth), and descriptive plots comparing the three groups on aspects of health and well-being. The new variables are the "scored" versions compiled from individual items (see information in the Refs folder).
 
