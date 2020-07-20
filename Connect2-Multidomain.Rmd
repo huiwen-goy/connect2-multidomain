@@ -1049,8 +1049,28 @@ The same question on loneliness was asked in Connect 1 as in Connect 2: "In the 
   
 All 424 cases in Connect 2 have loneliness data available, while 22 of these people are missing loneliness data from Connect 1.
   
-**Responses across 4 categories of "loneliness" in Connect 1 and Connect 2**
-     
+**Loneliness status by group, in Connect 2**  
+```{r, echo = FALSE}  
+
+cdata$Group <- factor(cdata$Group, levels = c("NH", "HL", "HA"))
+cdata$Lonely[cdata$Lonely == 1] <- "Yes"
+cdata$Lonely[cdata$Lonely == 0] <- "No"
+addmargins(table(cdata$Lonely, cdata$Group))
+t <- table(cdata$Lonely, cdata$Group)
+chisq.test(t, correct=FALSE)
+rm(t)
+
+# manual calculation; chi-sq = 4.799151, df = (3-1)*(2-1) = 2; critical = 5.99
+#((219 - 213.6415)^2/213.6415 + 
+  #(49 - 54.35849)^2/54.35849 + 
+  #(69 - 76.5283)^2/76.5283 + 
+  #(27 - 19.4717)^2/19.4717 + 
+  #(50 - 47.83019)^2/47.83019 + 
+  #(10 - 12.16981)^2/12.16981 )
+```
+  
+**Changes across four categories of "loneliness" from Connect 1 to Connect 2**
+  
 75.6% of people did not change their responses on "loneliness" from Connect 1 to Connect 2. Of the 24.4% of people who had different answers, 6.6% of people responded that they were less lonely at Time 2, while 12.7% responded that they were more lonely at Time 2. (5.2% were missing Time 1 data, so we can't tell if they changed.)
 ```{r, echo=FALSE}  
 
