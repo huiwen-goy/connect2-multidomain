@@ -154,6 +154,7 @@ Qualtrics_data_2020.07.13.csv
 ```{r, echo=FALSE}
 
 data <- read.csv("Qualtrics_data_2020.07.13.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
+
 ```
 
 # Data inclusion
@@ -956,7 +957,7 @@ cdata <- read.csv("Connect1_Connect2_merged_2020.07.16.csv", header=TRUE, na.str
   
 # Characteristics of early and late hearing aid adopters
   
-Who purchased HA in Connect 1, and who purchased HA between Connect 1 and Connect 2?  
+Who purchased HA in Connect 1, and who purchased HA by Connect 2?  
 ```{r, echo=FALSE}
 
 # addmargins(table(cdata$HA.Purchase, cdata$Use_HA, dnn = c('Connect1', 'Connect2'), useNA = 'always'))
@@ -1043,12 +1044,32 @@ ggplot(cdata[is.na(cdata$HA_group)==FALSE & cdata$HA_group != "Drop_out", ], aes
 
 ```
   
+```{r, echo=FALSE, include = FALSE}
+
+# Is there an effect of Group on Social Support scores?
+
+# Controls 3.87 vs Early Adopters 4.16; p-value = 0.06781
+t.test(
+  x = cdata$SocSuppMOS_overall[cdata$HA_group == "Control" & is.na(cdata$HA_group) == FALSE], 
+  y = cdata$SocSuppMOS_overall[cdata$HA_group == "Early_adopt" & is.na(cdata$HA_group) == FALSE],
+  paired = FALSE, alternative = c("two.sided") )
+# Controls vs Late Adopters (note only 20)
+t.test(
+  x = cdata$SocSuppMOS_overall[cdata$HA_group == "Control" & is.na(cdata$HA_group) == FALSE], 
+  y = cdata$SocSuppMOS_overall[cdata$HA_group == "Late_adopt" & is.na(cdata$HA_group) == FALSE],
+  paired = FALSE, alternative = c("two.sided") )
+# Early vs Late Adopters (note only 20)
+t.test(
+  x = cdata$SocSuppMOS_overall[cdata$HA_group == "Early_adopt" & is.na(cdata$HA_group) == FALSE], 
+  y = cdata$SocSuppMOS_overall[cdata$HA_group == "Late_adopt" & is.na(cdata$HA_group) == FALSE],
+  paired = FALSE, alternative = c("two.sided") )
+
+```
+    
 # Change in loneliness from Time 1 to Time 2
   
-The same question on loneliness was asked in Connect 1 as in Connect 2: "In the past week, how often did you feel lonely? All of the time (4), Occasionally (3), Some of the time (2), Rarely or never (1)."  
-  
-All 424 cases in Connect 2 have loneliness data available, while 22 of these people are missing loneliness data from Connect 1.
-  
+The same question on loneliness was asked in Connect 1 as in Connect 2: "In the past week, how often did you feel lonely? All of the time (4), Occasionally (3), Some of the time (2), Rarely or never (1)." In Connect 2, the responses were also recoded to a binary variable (lonely or not) according to Mick et al. (2018). All 424 cases in Connect 2 have loneliness data available, while 22 of these people are missing loneliness data from Connect 1.
+   
 **Loneliness status by group, in Connect 2**  
 ```{r, echo = FALSE}  
 
@@ -1071,7 +1092,7 @@ rm(t)
   
 **Changes across four categories of "loneliness" from Connect 1 to Connect 2**
   
-75.6% of people did not change their responses on "loneliness" from Connect 1 to Connect 2. Of the 24.4% of people who had different answers, 6.6% of people responded that they were less lonely at Time 2, while 12.7% responded that they were more lonely at Time 2. (5.2% were missing Time 1 data, so we can't tell if they changed.)
+75.6% of people did not change their responses on "loneliness" from Connect 1 to Connect 2. Another 6.6% of people responded that they were less lonely at Time 2, while 12.7% responded that they were more lonely at Time 2. (5.2% were missing Time 1 data, so we can't tell if they changed.)
 ```{r, echo=FALSE}  
 
 # Loneliness Q
@@ -1119,10 +1140,11 @@ Limiting the data to people in three HA adoption groups (59 early adopters, 20 l
 
 hhie <- cdata2[, c('ID', 'HA_group', 'HHIE_total', 'HHIES_total')]
 names(hhie)[3:4] <- c('Time.1', 'Time.2')
+
+# Make a longform dataset with Group and Time as repeated measures
 hhie2 <- reshape(hhie, idvar = c('ID', 'HA_group'), varying = c('Time.1', 'Time.2'), direction = "long")
 names(hhie2)[4] <- c('HHIES_total')
-
-# Time as factor
+# Make Time as factor
 hhie2$time <- as.factor(hhie2$time)
 
 # Table of means, by group
@@ -1136,7 +1158,7 @@ library(lme4)
 m0 <- lmer(HHIES_total ~ (1|ID), data=hhie2, REML=FALSE)
 
 m1a <- lmer(HHIES_total ~ HA_group + (1|ID), data=hhie2, REML=FALSE)
-anova(m0, m1a) # groups are the same
+anova(m0, m1a) # no effect of group
 
 m1b <- lmer(HHIES_total ~ time + (1|ID), data=hhie2, REML=FALSE)
 anova(m0, m1b) # no effect of time
