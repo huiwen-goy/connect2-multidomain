@@ -16,7 +16,7 @@ output:
 4. Created Qualtrics ID "key" for matching with Connect IDs, with five columns: ResponseId, RecipientLastName, RecipientFirstName, Consent_1_main, Consent_2_clinic; file named "id_qualtrics.csv".
 5. Deleted columns from main Qualtrics dataset: IPAddress, RecipientLastName, RecipientFirstName, RecipientEmail, ExternalReference, LocationLatitude, LocationLongitude, DistributionChannel, UserLanguage
 6. Matched Connect IDs to Qualtrics IDs using first and last names.
-```{r, include=FALSE}
+```{r, eval=FALSE, include=FALSE}
 
 ## Match Connect IDs to Qualtrics IDs
 
@@ -58,7 +58,7 @@ output:
 ```
 
 7. Matched audiometric and other clinic info to Qualtrics data using Qualtrics IDs.
-```{r, echo=FALSE}
+```{r, eval=FALSE, include=FALSE}
 
 # Qualtrics data
 #qdata <- read.csv("Multidomain_2020.07.02_18.16_numeric.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
@@ -86,7 +86,7 @@ output:
 # Evaluating data quality
 
 Of 527 respondents: 453 were matched to Connect IDs; 6 were matched but declined to share info; 2 were matched but did not fill out consent option to share info and are assumed to have declined; 66 were unmatched to Connect IDs (see "cases.pdf").
-```{r, echo=FALSE}
+```{r, eval=FALSE, include=FALSE}
 
 # Read dataset containing Qualtrics data matched to Connect data for those who consented to sharing clinic data
 
@@ -104,7 +104,7 @@ Of 527 respondents: 453 were matched to Connect IDs; 6 were matched but declined
 
 Of those 453 who consented to share their clinic data and had clinic IDs available, 439 had full audiograms, 3 had a few cells missing from their audiograms, and 11 had completely missing audiograms.
 Of the 11 completely missing audiograms, 7 were recovered from the original Connect 1 dataset (before any cleaning). Final result: 446 full audiograms, 3 partial, 4 missing.
-```{r, echo=FALSE}
+```{r, eval=FALSE, include=FALSE}
 
 # Evaluate missing data: Audiograms
 
@@ -586,18 +586,18 @@ round(table(data$Include_over90data, data$Group, useNA = "always") / 527 * 100, 
  
 # Descriptive plots and tables
  
-Note: All those with unknown Group and all those with >10% missing data have been excluded in these plots.
+From this point, those with unknown Group and or >10% missing data are excluded.
 ```{r, echo=FALSE}
 
-# Set order of group factor levels
-data$Group <- factor(data$Group, levels = c("NH", "HL", "HA", "NA"))
-
 # Remove those with unknown Group and >10% missing data; leaves 424
-data2 <- data[is.na(data$Group) == FALSE & data$Include_over90data == 1, ]
+data2 <- data.frame(data[is.na(data$Group) == FALSE & data$Include_over90data == 1, ], stringsAsFactors=FALSE)
 
 ```
  
 ```{r, echo=FALSE, message = FALSE, warning = FALSE}
+
+# Set order of group factor levels (for plotting only)
+data2$Group <- factor(data2$Group, levels = c("NH", "HL", "HA", "NA"))
 
 library(ggplot2)
 
@@ -836,11 +836,12 @@ ggplot(data2, aes(x = SocSuppMOS_positive, fill = Group)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
+rm(mos)
 ```
 
 # Examining co-morbidities
  
-**Overall responses across comorbidity items**
+**Overall responses across co-morbidity items**
 ```{r, echo=FALSE}
 
 # Rename variables to make them more user-friendly
@@ -865,7 +866,7 @@ round(data.frame(
   Missing = colSums(is.na(data2[, 22:52])) / 424 * 100), digits=1)
 ```
 
-**Percentage of 'yes' responses for each group**
+**Percentage of 'yes' responses for each co-morbidity**
 ```{r, echo=FALSE}
 
 # Subsetting by hearing status
@@ -880,8 +881,7 @@ round(data.frame(
   HA = colSums(HA[, 22:52] == 1, na.rm=TRUE) / nrow(HA) * 100), digits=1)
 ```
   
-**Mean number of each type of comorbidity reported, by hearing group**
-   
+**Collapsing conditions into broader categories**  
 Vision: Cataracts, eye problems  
 Cardio: Heart, vascular, high BP, stroke  
 Arthritis: Rheumatoid, Arthritis excluding osteoarthritis  
@@ -891,12 +891,10 @@ Memory: Memory problems, dementia
 Neuro: Parkinson's, MS, epilepsy, migraines  
 Psych: Anxiety, depression  
 Other: Allergies, asthma, lung, hypothyroid, hyperthyroid, cancer, kidney, urinary, ulcers, bowel.disorder, bowel.incont 
-```{r, echo=FALSE}
 
-# Initial suggestion: vision, "physical", arthritis, neuro/cognitive, psychological
-#names(data2)[22:52]
+```{r, eval=FALSE, include=FALSE}
 
-# My groups
+# Counting the number of each type of condition, per person
 data2$Count_vision <- rowSums(data2[, c('cataracts', 'eye')] == 1)
 data2$Count_cardio <- rowSums(data2[, c('heart', 'vascular', 'highbp', 'stroke')] == 1)
 data2$Count_arthritis <- rowSums(data2[, c('rheumatoid', 'arthritis')] == 1)
@@ -907,7 +905,7 @@ data2$Count_neuro <- rowSums(data2[, c('parkinson', 'ms', 'epilepsy', 'migraine'
 data2$Count_psych <- rowSums(data2[, c('anxiety', 'depression')] == 1)
 data2$Count_other <- rowSums(data2[, c('allergies', 'asthma', 'lung', 'hypothyroid', 'hyperthyroid', 'cancer', 'kidney', 'urinary', 'ulcers', 'bowel.disorder', 'bowel.incont')] == 1)
 
-# Subsetting by hearing status, again
+# Subsetting by hearing status
 NH <- subset(data2, Group == "NH")
 HL <- subset(data2, Group == "HL")
 HA <- subset(data2, Group == "HA")
@@ -919,6 +917,109 @@ round(data.frame(
   HA = colMeans(HA[, 337:345], na.rm=TRUE) ), digits=2 )
 
 rm(list = c('NH', 'HL', 'HA'))
+```
+  
+**Percentage of 'yes' responses for each type of co-morbidity**
+```{r, echo=FALSE}
+
+data2$Presence_vision <- ifelse(data2$cataracts == 1 | data2$eye == 1, 1, 0)
+data2$Presence_cardio <- ifelse(data2$heart == 1 | data2$vascular == 1 | data2$highbp == 1 | data2$stroke == 1, 1, 0)
+data2$Presence_arthritis <- ifelse(data2$rheumatoid == 1 | data2$arthritis == 1, 1, 0)
+data2$Presence_diabetes <- ifelse(data2$diabetes == 1, 1, 0)
+data2$Presence_mobility <- ifelse(data2$osteoarth == 1 | data2$back == 1 | data2$osteoporosis == 1, 1, 0)
+data2$Presence_memory <- ifelse(data2$memory == 1 | data2$dementia == 1, 1, 0)
+data2$Presence_neuro <- ifelse(data2$parkinson == 1 | data2$ms == 1 | data2$epilepsy == 1 | data2$migraine == 1, 1, 0)
+data2$Presence_psych <- ifelse(data2$anxiety == 1 | data2$depression == 1, 1, 0)
+data2$Presence_other <- ifelse(data2$allergies == 1 | data2$asthma == 1 | data2$lung == 1 | data2$hypothyroid == 1 | data2$hyperthyroid == 1 | data2$cancer == 1 | data2$kidney == 1 | data2$urinary == 1 | data2$ulcers == 1 | data2$bowel.disorder == 1 | data2$bowel.incont == 1, 1, 0)
+
+# Subsetting by hearing status
+NH <- subset(data2, Group == "NH")
+HL <- subset(data2, Group == "HL")
+HA <- subset(data2, Group == "HA")
+
+# Mean percentage of each type of comorbidity reported, by group
+round(data.frame( 
+  NH = colSums(NH[, 338:345] == 1, na.rm=TRUE) / nrow(NH) * 100, 
+  HL = colSums(HL[, 338:345] == 1, na.rm=TRUE) / nrow(HL) * 100, 
+  HA = colSums(HA[, 338:345] == 1, na.rm=TRUE) / nrow(HA) * 100), digits=1)
+```
+  
+**Association between different types of co-morbidities**
+  
+275 participants have between 2 to 8 types of co-morbidities. In the matrix below, each point is a pair of associated types of co-morbidities within a person. The same person may appear multiple times throughout the matrix, depending on how many pairs of associated types of conditions they have. 96 participants have only 1 type of co-morbidity and 50 participants have none, so these groups are not depicted.
+  
+![](comorb.jpg)
+```{r, eval=FALSE, include=FALSE}
+
+# Getting ready to plot pairs of conditions
+data2$Plot_vision <- ifelse(data2$Presence_vision == 1, 1, NA)
+data2$Plot_cardio <- ifelse(data2$Presence_cardio == 1, 2, NA)
+data2$Plot_arthritis <- ifelse(data2$Presence_arthritis == 1, 3, NA)
+data2$Plot_diabetes <- ifelse(data2$Presence_diabetes == 1, 4, NA)
+data2$Plot_mobility <- ifelse(data2$Presence_mobility == 1, 5, NA)
+data2$Plot_memory <- ifelse(data2$Presence_memory == 1, 6, NA)
+data2$Plot_neuro <- ifelse(data2$Presence_neuro == 1, 7, NA)
+data2$Plot_psych <- ifelse(data2$Presence_psych == 1, 8, NA)
+data2$Plot_other <- ifelse(data2$Presence_other == 1, 9, NA)
+
+# Create empty dataset to receive all pairs of co-morbidities
+dfco <- data.frame(id = as.character(), 
+                   group = as.character(),
+                   comorb.1 = as.numeric(), 
+                   comorb.2 = as.numeric(), stringsAsFactors = FALSE)
+
+# If a person has > 1 comorbidity, all possible pairs of their conditions will be noted
+for (i in 1:424) {
+  if (is.na(rowSums(data2[i, c("Presence_vision", "Presence_cardio", "Presence_arthritis", "Presence_diabetes", "Presence_mobility", "Presence_memory","Presence_neuro", "Presence_psych", "Presence_other")])) == FALSE &
+    rowSums(data2[i, c("Presence_vision", "Presence_cardio", "Presence_arthritis", "Presence_diabetes", "Presence_mobility", "Presence_memory","Presence_neuro", "Presence_psych", "Presence_other")]) > 1) {
+    
+    conditions <- data2[i, c("Plot_vision", "Plot_cardio", "Plot_arthritis", "Plot_diabetes", "Plot_mobility", "Plot_memory", "Plot_neuro", "Plot_psych", "Plot_other")][is.na(data2[i, c("Plot_vision", "Plot_cardio", "Plot_arthritis", "Plot_diabetes", "Plot_mobility", "Plot_memory", "Plot_neuro", "Plot_psych", "Plot_other")]) == F]
+    output <- t(combn(conditions, m = 2))
+    
+    current.rows <- nrow(dfco)
+    
+    dfco[(current.rows + 1) : (current.rows + nrow(output)), 1] <- rep(data2$ConnectId[i], nrow(output))
+    dfco[(current.rows + 1) : (current.rows + nrow(output)), 2] <- rep(data2$Group[i], nrow(output))
+    dfco[(current.rows + 1) : (current.rows + nrow(output)), 3:4] <- output
+  }
+}
+
+rm(list = c('output', 'conditions', 'current.rows', 'i'))
+
+dfco$group <- factor(dfco$group, levels = c("NH", "HL", "HA")) 
+
+ggplot(dfco, aes(x = jitter(comorb.2), y = jitter(comorb.1))) + 
+  geom_point(size = 2, colour = "black", alpha = 0.3) +
+  facet_grid(~ group) + 
+  coord_cartesian(xlim=c(1, 9), ylim=c(1, 9)) +
+  xlab('Co-morbidity A') +
+  ylab('Co-morbidity B') + 
+  scale_x_continuous(breaks = seq(1, 9, by = 1), labels=c("Vi", "Ca", "Ar", "Di", "Mo", "Me", "Ne", "Ps", "O")) + 
+  scale_y_continuous(breaks = seq(1, 9, by = 1), labels=c("Vision", "Cardio", "Arth", "Diab", "Mobil", "Mem", "Neuro", "Psych", "Other")) + 
+  theme_bw() +
+  theme(axis.title = element_text(size = 25, face="bold"), 
+    axis.text = element_text(colour = "black", size = 16, face="bold"), 
+    text = element_text(size = 20))
+
+
+```
+
+Note: There are 1179 pairs of types of conditions in the plot.
+```{r, eval=FALSE, include=FALSE}
+
+# Check that final number of pairs of conditions is correct
+data2$Comorb_types <- rowSums(data2[c("Presence_vision", "Presence_cardio", "Presence_arthritis", "Presence_diabetes", "Presence_mobility", "Presence_memory","Presence_neuro", "Presence_psych", "Presence_other")])
+
+counts <- data.frame(table(data2$Comorb_types, useNA='always'))
+names(counts) <- c('number_comorb', 'number_people')
+counts$number_comorb <- as.numeric(as.character(counts$number_comorb))
+
+counts$combinations <- ifelse(counts$number_comorb > 1, 
+                              choose(counts$number_comorb, 2) * counts$number_people, 
+                              0)
+
+sum(counts$number_people, na.rm=TRUE) #424 subjects is correct
+sum(counts$combinations, na.rm=TRUE) #expect 1179 pairs of conditions
 ```
   
 # Merging Connect 1 and Connect 2 data
@@ -952,13 +1053,12 @@ Connect1_Connect2_merged_2020.07.16.csv
 
 # Read merged dataset; columns have been cleaned up so there are no longer duplicates.
 cdata <- read.csv("Connect1_Connect2_merged_2020.07.16.csv", header=TRUE, na.strings=c("", "NA"))
-
 ```
   
 # Characteristics of early and late hearing aid adopters
   
 Who purchased HA in Connect 1, and who purchased HA by Connect 2?  
-```{r, echo=FALSE}
+```{r, eval=FALSE, include=FALSE}
 
 # addmargins(table(cdata$HA.Purchase, cdata$Use_HA, dnn = c('Connect1', 'Connect2'), useNA = 'always'))
 ```
