@@ -154,7 +154,6 @@ Qualtrics_data_2020.07.13.csv
 ```{r, echo=FALSE}
 
 data <- read.csv("Qualtrics_data_2020.07.13.csv", header=TRUE, na.strings=c("", "NA", "<NA>"))
-
 ```
 
 # Data inclusion
@@ -162,7 +161,7 @@ data <- read.csv("Qualtrics_data_2020.07.13.csv", header=TRUE, na.strings=c("", 
 "Non-conditional items" are items in the questionnaire that make up the shortest possible path through the survey, i.e., skipping all conditional items that only appear given a 'yes' answer earlier. The threshold we decided on for including a participant's data is that they should have less than 10% missing cells in non-conditional items. Using this threshold, 497 (94.3%) participants are included.
  
 *Proportion_missing_data* and *Include_over90data* are added as new variables.
-```{r, echo=FALSE}
+```{r, echo = FALSE, include = FALSE}
 
 # Evaluate missing data: Questionnaire items
 
@@ -212,7 +211,7 @@ rm(d2)
 - Patient Health Questionnaire (PHQ): Total score
 - Social Network Index: Sum; scoring procedure in Mick et al. (2018)
 - Social Participation (CCHS / CLSA): Recoding procedure in Mick et al. (2018)
-- General Relationship Satisfaction: Total score
+- General Relationship Satisfaction: Average score
 - MOS Social Support Survey: Scoring procedure in Mick et al. (2018)
 - PTA4 left, right, and better ear
 
@@ -489,8 +488,9 @@ rs <- data.frame(case = c(1:527)) # Create new temp dataset
 rs[, 2:8] <- data[, 227:233] # Copy variables into temp dataset
 rs$Relation_satisf_2_1 <- 6 - rs$Relation_satisf_2_1 # Reverse-coded 4th item
 rs$Relation_satisf_5_1 <- 6 - rs$Relation_satisf_5_1 # Reverse-coded 7th item
-rs$RelSatisf_total <- rowMeans(rs[, c(2:8)], na.rm=TRUE)
-rs$RelSatisf_total[is.nan(rs$RelSatisf_total) == TRUE] <- NA
+rs$RelSatisf_avg <- rowMeans(rs[, c(2:8)], na.rm=TRUE)
+rs$RelSatisf_avg[is.nan(rs$RelSatisf_avg) == TRUE] <- NA
+data$RelSatisf_avg <- rs$RelSatisf_avg
 #table(rowSums(is.na(rs[, 2:8]) == TRUE)) 
 # recall this scale is only filled out if in a permanent relationship; about 1 in 3 did not fill this out
 
@@ -569,7 +569,7 @@ data$Age <- 2019 - data$Demo_2_year_cleaned
 # List of all new variables
 ```{r, echo=FALSE}
 
-str(data[, 301:336])
+str(data[, 301:ncol(data)])
 
 # remove extra datasets created to help with recoding and/or scoring
 rm(list = c('cog', 'rs', 'sni', 'who'))
@@ -586,7 +586,7 @@ round(table(data$Include_over90data, data$Group, useNA = "always") / 527 * 100, 
  
 # Descriptive plots and tables
  
-From this point, those with unknown Group and or >10% missing data are excluded.
+**From this point onwards, those with unknown Group and or >10% missing data are excluded.**
 ```{r, echo=FALSE}
 
 # Remove those with unknown Group and >10% missing data; leaves 424
@@ -619,30 +619,12 @@ ggplot(data2, aes(x = PTA4_better_ear, fill = Group)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
-# Comorbidities
-ggplot(data2, aes(x = Comorb_count, fill = Group)) + 
-  geom_density(alpha=0.25) + 
-  xlab('Number of comorbidities') +
-  ylab('Density') + 
-  xlim(c(0, 25)) +
-  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
-      element_text(size = 20))
-
 # 15iSSQ average score
 ggplot(data2, aes(x = SSQ15i_avg, fill = Group)) + 
   geom_density(alpha=0.25) + 
   xlab('15iSSQ average score') +
   ylab('Density') + 
   xlim(c(0, 10)) +
-  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
-      element_text(size = 20))
-
-# Social Isolation Measure
-ggplot(data2, aes(x = SIM_total, fill = Group)) + 
-  geom_density(alpha=0.25) + 
-  xlab('Social Isolation Measure total') +
-  ylab('Density') + 
-  xlim(c(0, 50)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
@@ -664,12 +646,12 @@ ggplot(data2, aes(x = HHIES_emo, fill = Group)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
-# Cognitive Self Report; note 68 missing rows
-ggplot(data2, aes(x = CSRQ_total, fill = Group)) + 
+# Comorbidities
+ggplot(data2, aes(x = Comorb_count, fill = Group)) + 
   geom_density(alpha=0.25) + 
-  xlab('Cognitive Self-Report total') +
+  xlab('Number of comorbidities') +
   ylab('Density') + 
-  xlim(c(50, 150)) +
+  xlim(c(0, 25)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
@@ -679,6 +661,33 @@ ggplot(data2, aes(x = ABC_average, fill = Group)) +
   xlab('Balance confidence') +
   ylab('Density') + 
   xlim(c(0, 100)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# Cognitive Self Report; note 68 missing rows
+ggplot(data2, aes(x = CSRQ_total, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Cognitive Self-Report total') +
+  ylab('Density') + 
+  xlim(c(50, 150)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# Social Isolation Measure
+ggplot(data2, aes(x = SIM_total, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Social Isolation Measure total') +
+  ylab('Density') + 
+  xlim(c(0, 50)) +
+  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
+      element_text(size = 20))
+
+# Relationship satisfaction (note: only those in a permanent relationship)
+ggplot(data2, aes(x = RelSatisf_avg, fill = Group)) + 
+  geom_density(alpha=0.25) + 
+  xlab('Relationship satisfaction') +
+  ylab('Density') + 
+  xlim(c(1, 5)) +
   theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
       element_text(size = 20))
 
@@ -841,7 +850,7 @@ rm(mos)
 
 # Examining co-morbidities
  
-**Overall responses across co-morbidity items**
+## Overall responses for co-morbidity items
 ```{r, echo=FALSE}
 
 # Rename variables to make them more user-friendly
@@ -866,7 +875,7 @@ round(data.frame(
   Missing = colSums(is.na(data2[, 22:52])) / 424 * 100), digits=1)
 ```
 
-**Percentage of 'yes' responses for each co-morbidity**
+## Percentage of 'yes' responses for each co-morbidity
 ```{r, echo=FALSE}
 
 # Subsetting by hearing status
@@ -881,7 +890,7 @@ round(data.frame(
   HA = colSums(HA[, 22:52] == 1, na.rm=TRUE) / nrow(HA) * 100), digits=1)
 ```
   
-**Collapsing conditions into broader categories**  
+## Collapsing conditions into broader categories 
 Vision: Cataracts, eye problems  
 Cardio: Heart, vascular, high BP, stroke  
 Arthritis: Rheumatoid, Arthritis excluding osteoarthritis  
@@ -891,35 +900,8 @@ Memory: Memory problems, dementia
 Neuro: Parkinson's, MS, epilepsy, migraines  
 Psych: Anxiety, depression  
 Other: Allergies, asthma, lung, hypothyroid, hyperthyroid, cancer, kidney, urinary, ulcers, bowel.disorder, bowel.incont 
-
-```{r, eval=FALSE, include=FALSE}
-
-# Counting the number of each type of condition, per person
-data2$Count_vision <- rowSums(data2[, c('cataracts', 'eye')] == 1)
-data2$Count_cardio <- rowSums(data2[, c('heart', 'vascular', 'highbp', 'stroke')] == 1)
-data2$Count_arthritis <- rowSums(data2[, c('rheumatoid', 'arthritis')] == 1)
-data2$Count_diabetes <- ifelse(data2[, 'diabetes'] == 1, 1, 0)
-data2$Count_mobility <- rowSums(data2[, c('osteoarth', 'back', 'osteoporosis')] == 1)
-data2$Count_memory <- rowSums(data2[, c('memory', 'dementia')] == 1)
-data2$Count_neuro <- rowSums(data2[, c('parkinson', 'ms', 'epilepsy', 'migraine')] == 1)
-data2$Count_psych <- rowSums(data2[, c('anxiety', 'depression')] == 1)
-data2$Count_other <- rowSums(data2[, c('allergies', 'asthma', 'lung', 'hypothyroid', 'hyperthyroid', 'cancer', 'kidney', 'urinary', 'ulcers', 'bowel.disorder', 'bowel.incont')] == 1)
-
-# Subsetting by hearing status
-NH <- subset(data2, Group == "NH")
-HL <- subset(data2, Group == "HL")
-HA <- subset(data2, Group == "HA")
-
-# Mean number of each type of comorbidity reported, by group
-round(data.frame( 
-  NH = colMeans(NH[, 337:345], na.rm=TRUE), 
-  HL = colMeans(HL[, 337:345], na.rm=TRUE), 
-  HA = colMeans(HA[, 337:345], na.rm=TRUE) ), digits=2 )
-
-rm(list = c('NH', 'HL', 'HA'))
-```
-  
-**Percentage of 'yes' responses for each type of co-morbidity**
+   
+## Percentage of 'yes' responses for each type of co-morbidity
 ```{r, echo=FALSE}
 
 data2$Presence_vision <- ifelse(data2$cataracts == 1 | data2$eye == 1, 1, 0)
@@ -939,12 +921,13 @@ HA <- subset(data2, Group == "HA")
 
 # Mean percentage of each type of comorbidity reported, by group
 round(data.frame( 
-  NH = colSums(NH[, 338:345] == 1, na.rm=TRUE) / nrow(NH) * 100, 
-  HL = colSums(HL[, 338:345] == 1, na.rm=TRUE) / nrow(HL) * 100, 
-  HA = colSums(HA[, 338:345] == 1, na.rm=TRUE) / nrow(HA) * 100), digits=1)
+  NH = colSums(NH[, c('Presence_vision', 'Presence_cardio', 'Presence_arthritis', 'Presence_diabetes', 'Presence_mobility', 'Presence_memory', 'Presence_neuro', 'Presence_psych', 'Presence_other')] == 1, na.rm=TRUE) / nrow(NH) * 100, 
+  HL = colSums(HL[, c('Presence_vision', 'Presence_cardio', 'Presence_arthritis', 'Presence_diabetes', 'Presence_mobility', 'Presence_memory', 'Presence_neuro', 'Presence_psych', 'Presence_other')] == 1, na.rm=TRUE) / nrow(HL) * 100, 
+  HA = colSums(HA[, c('Presence_vision', 'Presence_cardio', 'Presence_arthritis', 'Presence_diabetes', 'Presence_mobility', 'Presence_memory', 'Presence_neuro', 'Presence_psych', 'Presence_other')] == 1, na.rm=TRUE) / nrow(HA) * 100), digits=1)
+
 ```
   
-**Association between different types of co-morbidities**
+## Association between different types of co-morbidities
   
 275 participants have between 2 to 8 types of co-morbidities. In the matrix below, each point is a pair of associated types of co-morbidities within a person. The same person may appear multiple times throughout the matrix, depending on how many pairs of associated types of conditions they have. 96 participants have only 1 type of co-morbidity and 50 participants have none, so these groups are not depicted.
   
@@ -1024,153 +1007,81 @@ sum(counts$combinations, na.rm=TRUE) #expect 1179 pairs of conditions
   
 # Merging Connect 1 and Connect 2 data
   
-Using only n=424 cases in Connect 2, where participants have a known Hearing Group and ≥90% data, Connect 1 data was matched to Connect 2 data using clinic IDs. 
-  
-Connect1_Connect2_merged_2020.07.16.csv
-```{r, echo=FALSE}
+Using only n=424 cases in Connect 2, where participants have a known Hearing Group and ≥90% data, Connect 1 data was matched to Connect 2 data using clinic IDs.
+```{r, eval = FALSE, include = FALSE}
 
 ### Merging Connect 1 and Connect 2 data
 
-# Read Connect 2 dataset, with additional variables already built in
-#data <- read.csv("Qualtrics_data_2020.07.13.additional.csv", header=TRUE, na.strings=c("", "NA"))
+# Read Connect 2 dataset
+data <- read.csv("Qualtrics_data_2020.07.13.csv", header=TRUE, na.strings=c("", "NA"))
+
+# Run code up until line 577 to calculate new variables
 
 # Exclude those with unknown Group and too much missing data (n=424 remaining)
-#c2 <- data[is.na(data$Group) == FALSE & data$Include_over90data == 1, ]
+c2 <- data[is.na(data$Group) == FALSE & data$Include_over90data == 1, ]
 
 # Duplicate column of IDs to use for merging
-#c2$ID <- c2$ConnectId
+c2$ID <- c2$ConnectId
 
 # Read Connect 1 dataset (n=3509)
 # Duplicate ID column already exists
-#c1 <- read.csv("Connect_Data_20191025.csv", header=TRUE, na.strings=c("", "NA"))
+c1 <- read.csv("Connect_Data_20191025.csv", header=TRUE, na.strings=c("", "NA"))
 
 # Pull Connect 1 data into Connect 2
-#c3 <- merge(x = c2, y = c1, all.x = TRUE, by.x = 'ID', by.y = 'ID')
+c3 <- merge(x = c2, y = c1, all.x = TRUE, by.x = 'ID', by.y = 'ID')
 
-# Clean up duplicated columns
-#c4 <- c3[, -c(275:301, 331:333, 367, 373, 444)]
-#write.csv(c4, "~/Desktop/Connect1_Connect2_merged_2020.07.16.csv")
-
-# Read merged dataset; columns have been cleaned up so there are no longer duplicates.
-cdata <- read.csv("Connect1_Connect2_merged_2020.07.16.csv", header=TRUE, na.strings=c("", "NA"))
+# Delete duplicated columns labelled with a .x suffix
+c4 <- c3[, -c(275:301, 332:334)]
+write.csv(c4, "~/Desktop/Connect1_Connect2_merged_2020.07.29.csv")
 ```
   
-# Characteristics of early and late hearing aid adopters
-  
-Who purchased HA in Connect 1, and who purchased HA by Connect 2?  
-```{r, eval=FALSE, include=FALSE}
+Connect1_Connect2_merged_2020.07.29
+```{r, echo=FALSE}
 
-# addmargins(table(cdata$HA.Purchase, cdata$Use_HA, dnn = c('Connect1', 'Connect2'), useNA = 'always'))
+cdata <- read.csv("Connect1_Connect2_merged_2020.07.29.csv", header=TRUE, na.strings=c("", "NA"))
 ```
-![](HA_table.jpg)  
-
-The "control" group was refined by selecting only people whose better ear PTA4 was > 25 dB HL, resulting in n=93 remaining, down from n=337 originally.
+  
+## Length of time for HA decision
+  
+Examining just the 60 HA participants, 16 did not have a date of HA purchase in Connect 1 even though they reported using HA in Connect 2; they likely got their HA elsewhere. The length of time between "Most recent hearing eval" and "Date of HA purchase" was calculated. ("Date of first visit" frequently had missing values, while "Date of most recent visit" was frequently after the date of purchase, so these were not good time markers.)
   
 ```{r, echo=FALSE}
 
-# Create four groups
-cdata$HA_group <- rep(NA, 424)
-cdata$HA_group[cdata$HA.Purchase == "Yes" & cdata$Use_HA == 1] <- "Early_adopt"
-cdata$HA_group[cdata$HA.Purchase == "No" & cdata$Use_HA == 1] <- "Late_adopt"
-cdata$HA_group[cdata$HA.Purchase == "Yes" & is.na(cdata$Use_HA) == TRUE] <- "Drop_out"
-cdata$HA_group[cdata$HA.Purchase == "No" & is.na(cdata$Use_HA) == TRUE & cdata$PTA4_better_ear > 25] <- "Control"
+ha <- subset(cdata, Group == "HA")
+ha$Time_to_purchase <- as.Date(ha$Date.HA.Purchase, format = "%m %d %Y") - as.Date(ha$Date.Most.Recent.Hearing.Eval, format = "%m %d %Y")
+ha$Time_to_purchase[ha$Time_to_purchase < 0] <- NA
 
-table(cdata$HA_group, cdata$HA.Purchase, useNA='always', dnn = c('Connect2', 'Connect1'))
-```
+plot(x = ha$SocSuppMOS_overall, y = ha$Time_to_purchase, xlim = c(1, 5), ylim = c(0, 200), pch = 16, 
+     xlab = "MOS Social Support overall", ylab = "Time to purchase (days)")
 
-```{r, echo=FALSE, message = FALSE, warning = FALSE}
-
-# PTA4 better ear
-ggplot(cdata[is.na(cdata$HA_group)==FALSE & cdata$HA_group != "Drop_out", ], aes(x = PTA4_better_ear, fill = HA_group)) + 
-  geom_density(alpha=0.25) + 
-  xlab('PTA4 better ear (dB HL)') +
-  ylab('Density') + 
-  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
-      element_text(size = 20))
-
-# MOS Social Support
-ggplot(cdata[is.na(cdata$HA_group)==FALSE & cdata$HA_group != "Drop_out", ], aes(x = SocSuppMOS_overall, fill = HA_group)) + 
-  geom_density(alpha=0.25) + 
-  xlab('MOS Social Support overall') +
-  ylab('Density') + 
-  theme(axis.title = element_text(size = 25), axis.text = element_text(size = 15), text = 
-      element_text(size = 20))
-
-#library(Hmisc)
-
-#PTA4 of each group
-
-#"Early_adopt": Mean 30.23, 10.00 to 48.75
-#describe(cdata$PTA4_better_ear[cdata$HA.Purchase == "Yes" 
-                          #    & cdata$Use_HA == 1
-                          #    & is.na(cdata$HA.Purchase) == FALSE
-                          #    & is.na(cdata$Use_HA) == FALSE])
-#"Late_adopt": Mean 31.94, 17.50 to 46.25
-#describe(cdata$PTA4_better_ear[cdata$HA.Purchase == "No" 
-                           #   & cdata$Use_HA == 1
-                           #   & is.na(cdata$HA.Purchase) == FALSE
-                           #   & is.na(cdata$Use_HA) == FALSE])
-#"Drop_out": 41 dB HL (Note LE2000 is 34; typo)
-#describe(cdata$PTA4_better_ear[cdata$HA.Purchase == "Yes" 
-                            #  & is.na(cdata$Use_HA) == TRUE
-                            #  & is.na(cdata$HA.Purchase) == FALSE])
-# Controls with PTA4 better ear > 25, n=93, Mean 32.18, 26.25 to 50.00
-#describe(cdata$PTA4_better_ear[cdata$HA.Purchase == "No" 
-                           #  & is.na(cdata$Use_HA) == TRUE
-                           #  & is.na(cdata$HA.Purchase) == FALSE
-                           #  & cdata$PTA4_better_ear > 25])
-
-# Social support scores of each group
-
-#"Early_adopt": Mean 4.162, 1.947368 to 5.000000
-#describe(cdata$SocSuppMOS_overall[cdata$HA.Purchase == "Yes" 
-                           #   & cdata$Use_HA == 1
-                           #   & is.na(cdata$HA.Purchase) == FALSE
-                           #   & is.na(cdata$Use_HA) == FALSE])
-#"Late_adopt": Mean 4.116, 2.421053 to 5.000000
-#describe(cdata$SocSuppMOS_overall[cdata$HA.Purchase == "No" 
-                            #  & cdata$Use_HA == 1
-                            #  & is.na(cdata$HA.Purchase) == FALSE
-                            #  & is.na(cdata$Use_HA) == FALSE])
-#"Drop_out": 4.789
-#describe(cdata$SocSuppMOS_overall[cdata$HA.Purchase == "Yes" 
-                           #   & is.na(cdata$Use_HA) == TRUE
-                           #   & is.na(cdata$HA.Purchase) == FALSE])
-#Controls with PTA4 better ear > 25, n=93, Mean 3.875, 1.000000 to 5.000000
-#describe(cdata$SocSuppMOS_overall[cdata$HA.Purchase == "No" 
-                          #   & is.na(cdata$Use_HA) == TRUE
-                          #   & is.na(cdata$HA.Purchase) == FALSE
-                          #   & cdata$PTA4_better_ear > 25])
-
+rm(ha)
 ```
   
-```{r, echo=FALSE, include = FALSE}
-
-# Is there an effect of Group on Social Support scores?
-
-# Controls 3.87 vs Early Adopters 4.16; p-value = 0.06781
-t.test(
-  x = cdata$SocSuppMOS_overall[cdata$HA_group == "Control" & is.na(cdata$HA_group) == FALSE], 
-  y = cdata$SocSuppMOS_overall[cdata$HA_group == "Early_adopt" & is.na(cdata$HA_group) == FALSE],
-  paired = FALSE, alternative = c("two.sided") )
-# Controls vs Late Adopters (note only 20)
-t.test(
-  x = cdata$SocSuppMOS_overall[cdata$HA_group == "Control" & is.na(cdata$HA_group) == FALSE], 
-  y = cdata$SocSuppMOS_overall[cdata$HA_group == "Late_adopt" & is.na(cdata$HA_group) == FALSE],
-  paired = FALSE, alternative = c("two.sided") )
-# Early vs Late Adopters (note only 20)
-t.test(
-  x = cdata$SocSuppMOS_overall[cdata$HA_group == "Early_adopt" & is.na(cdata$HA_group) == FALSE], 
-  y = cdata$SocSuppMOS_overall[cdata$HA_group == "Late_adopt" & is.na(cdata$HA_group) == FALSE],
-  paired = FALSE, alternative = c("two.sided") )
-
-```
-    
-# Change in loneliness from Time 1 to Time 2
+## Change in loneliness from Time 1 to Time 2
   
 The same question on loneliness was asked in Connect 1 as in Connect 2: "In the past week, how often did you feel lonely? All of the time (4), Occasionally (3), Some of the time (2), Rarely or never (1)." In Connect 2, the responses were also recoded to a binary variable (lonely or not) according to Mick et al. (2018). All 424 cases in Connect 2 have loneliness data available, while 22 of these people are missing loneliness data from Connect 1.
-   
-**Loneliness status by group, in Connect 2**  
+    
+75.6% of people did not change their responses on "loneliness" from Connect 1 to Connect 2. Another 6.6% of people responded that they were less lonely at Time 2, while 12.7% responded that they were more lonely at Time 2. (5.2% were missing Time 1 data, so we can't tell if they changed.)
+  
+```{r, echo=FALSE}  
+
+# Calculate how many got better, got worse, or stayed the same, or were NA
+#sum(is.na(cdata$Q55_Corrected)) #22
+#sum(is.na(cdata$CLSA_lonely)) #0
+#d <- data.frame(Connect1 = cdata$Q55_Corrected, Connect2 = cdata$CLSA_lonely)
+#t <- table(d[, 1], d[, 2], dnn = c("Connect 1", "Connect 2"), useNA = 'always')
+#addmargins(t)
+#round(addmargins(prop.table(t) * 100), digits = 1)
+#sum(diag(t)) / 424 * 100
+#sum(c(t[2:4, 1], t[3:4, 2], t[4, 3])) / 424 * 100
+#sum(c(t[1, 2:4], t[2, 3:4], t[3, 4])) / 424 * 100
+
+plot(jitter(cdata$Q55_Corrected), jitter(cdata$CLSA_lonely), lab = c(4, 4, 4),
+     xlab="Time 1 loneliness", ylab="Time 2 loneliness")
+```
+  
+The proportions of those who were lonely did not seem to differ by hearing status.
+  
 ```{r, echo = FALSE}  
 
 cdata$Group <- factor(cdata$Group, levels = c("NH", "HL", "HA"))
@@ -1190,82 +1101,3 @@ rm(t)
   #(10 - 12.16981)^2/12.16981 )
 ```
   
-**Changes across four categories of "loneliness" from Connect 1 to Connect 2**
-  
-75.6% of people did not change their responses on "loneliness" from Connect 1 to Connect 2. Another 6.6% of people responded that they were less lonely at Time 2, while 12.7% responded that they were more lonely at Time 2. (5.2% were missing Time 1 data, so we can't tell if they changed.)
-```{r, echo=FALSE}  
-
-# Loneliness Q
-#sum(is.na(cdata$Q55_Corrected)) #22
-#sum(is.na(cdata$CLSA_lonely)) #0
-#d <- data.frame(Connect1 = cdata$Q55_Corrected, Connect2 = cdata$CLSA_lonely)
-#t <- table(d[, 1], d[, 2], dnn = c("Connect 1", "Connect 2"), useNA = 'always')
-#addmargins(t)
-#round(addmargins(prop.table(t) * 100), digits = 1)
-#sum(diag(t)) / 424 * 100
-#sum(c(t[2:4, 1], t[3:4, 2], t[4, 3])) / 424 * 100
-#sum(c(t[1, 2:4], t[2, 3:4], t[3, 4])) / 424 * 100
-
-plot(jitter(cdata$Q55_Corrected), jitter(cdata$CLSA_lonely), lab = c(4, 4, 4),
-     xlab="Time 1 loneliness", ylab="Time 2 loneliness")
-```
-  
-Limiting the data to people in three HA adoption groups (59 early adopters, 20 late adopters, and 93 controls), there are actually more people who report being more lonely at Time 2 than at Time 1, compared to the other way around.
-
-|Group|Same %|Better %|Worse %|NA %|
-|-----|-----|-----|-----|-----|
-|Control|69.89|9.67|16.12|4.30|
-|Early_adopters|77.96|5.08|11.86|5.08|
-|Late_adopters|75.00|0.00|15.00|10.00|
-
-```{r, echo=FALSE}
-
-# Just looking at three groups: Control, Early and Late Adopters
-cdata2 <- cdata[is.na(cdata$HA_group)==FALSE & cdata$HA_group != "Drop_out", ]
-
-lonely <- cdata2[, c('ID', 'HA_group', 'Q55_Corrected', 'CLSA_lonely')]
-names(lonely)[3:4] <- c('Time1', 'Time2')
-
-table(lonely$Time1, lonely$Time2, lonely$HA_group, dnn = c('Time1', 'Time2'))
-#Control: same 65, better 9, worse 15, NA 4
-#Early_adopt: same 46, better 3, worse 7, NA 3
-#Late_adopt: same 15, better 0, worse 3, NA 2
-
-```
-  
-# Change in perceived hearing handicap from Time 1 to Time 2
-  
-Limiting the data to people in three HA adoption groups (59 early adopters, 20 late adopters, and 93 controls), there are no differences between groups on HHIE-S (total) and no differences from Time 1 to Time 2.
-```{r, echo=FALSE, message = FALSE, warning = FALSE}
-
-hhie <- cdata2[, c('ID', 'HA_group', 'HHIE_total', 'HHIES_total')]
-names(hhie)[3:4] <- c('Time.1', 'Time.2')
-
-# Make a longform dataset with Group and Time as repeated measures
-hhie2 <- reshape(hhie, idvar = c('ID', 'HA_group'), varying = c('Time.1', 'Time.2'), direction = "long")
-names(hhie2)[4] <- c('HHIES_total')
-# Make Time as factor
-hhie2$time <- as.factor(hhie2$time)
-
-# Table of means, by group
-round(tapply(hhie2$HHIES_total, list(Group = hhie2$HA_group, Time = hhie2$time), mean, na.rm=TRUE), digits=1)
-# Table of SDs
-#round(tapply(hhie2$HHIES_total, list(Group = hhie2$HA_group, Time = hhie2$time), sd, na.rm=TRUE), digits=1)
-
-# Is there an effect of Group?
-library(lme4)
-
-m0 <- lmer(HHIES_total ~ (1|ID), data=hhie2, REML=FALSE)
-
-m1a <- lmer(HHIES_total ~ HA_group + (1|ID), data=hhie2, REML=FALSE)
-anova(m0, m1a) # no effect of group
-
-m1b <- lmer(HHIES_total ~ time + (1|ID), data=hhie2, REML=FALSE)
-anova(m0, m1b) # no effect of time
-
-```
-
-
-
-
-
