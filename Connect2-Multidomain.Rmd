@@ -1004,6 +1004,71 @@ counts$combinations <- ifelse(counts$number_comorb > 1,
 sum(counts$number_people, na.rm=TRUE) #424 subjects is correct
 sum(counts$combinations, na.rm=TRUE) #expect 1179 pairs of conditions
 ```
+ 
+## Predicting hearing loss from comorbidities 
+Looking at the whole sample of participants, having greater PTA is associated with being older (p < 0.0001), being male (p = 0.003), to a slight extent having a cardiovascular disorder (p = 0.06), but not with having arthritis or diabetes.
+```{r, echo=FALSE}
+
+# recode "gender" (I know, it's not biological sex) to 0 and 1
+data2$Sex <- c(0)
+data2$Sex[data2$Demo_1_gender == 2] <- 1
+
+# no missing data for variables of interest; n = 422
+data3 <- subset(data2, 
+                is.na(data2$PTA4_better_ear) == FALSE & 
+                is.na(data2$Sex) == FALSE & 
+                is.na(data2$Age) == FALSE &
+                is.na(data2$Presence_arthritis) == FALSE &
+                is.na(data2$Presence_cardio) == FALSE &
+                is.na(data2$Presence_diabetes) == FALSE)
+
+m1 <- lm(PTA4_better_ear ~ Age + Sex + Presence_arthritis + Presence_cardio + Presence_diabetes, 
+          data = data3)
+summary(m1)
+```
+  
+Looking only at people with PTA > 25, age still has a relationship with PTA (p = 0.0479), and diabetes has a slight relationship (p = 0.0947).
+```{r, echo=FALSE}
+
+# exclude those with PTA ≤ 25; n = 155
+data4 <- subset(data2, 
+                is.na(data2$PTA4_better_ear) == FALSE & 
+                data2$PTA4_better_ear > 25 & 
+                is.na(data2$Sex) == FALSE & 
+                is.na(data2$Age) == FALSE &
+                is.na(data2$Presence_arthritis) == FALSE &
+                is.na(data2$Presence_cardio) == FALSE &
+                is.na(data2$Presence_diabetes) == FALSE)
+
+m2 <- lm(PTA4_better_ear ~ Age + Sex + Presence_arthritis + Presence_cardio + Presence_diabetes, 
+          data = data4)
+summary(m2)
+```
+ 
+# Examining quality of life
+Example analysis: In people with hearing loss (PTA > 25), general QoL is strongly associated with Health QoL and overall social support, but doesn't seem to be related to whether they use hearing aids, or their level of social participation.
+```{r, echo=FALSE}
+
+data2$UseHA <- c(0)
+data2$UseHA[data2$Use_HA == 1] <- 1
+
+data5 <- subset(data2, 
+                is.na(data2$PTA4_better_ear) == FALSE & 
+                data2$PTA4_better_ear > 25 & 
+                is.na(data2$WHOQOL_Q1_qol) == FALSE & 
+                is.na(data2$WHOQOL_Q2_health) == FALSE & 
+                is.na(data2$UseHA) == FALSE &  
+                is.na(data2$Participation) == FALSE &
+                is.na(data2$SocSuppMOS_overall) == FALSE)
+
+m3 <- lm(WHOQOL_Q1_qol ~ WHOQOL_Q2_health + UseHA + Participation + SocSuppMOS_overall, 
+          data = data5)
+summary(m3)
+
+# Cleaning up
+rm(list = c('data3', 'data4', 'data5'))
+
+```
   
 # Merging Connect 1 and Connect 2 data
   
