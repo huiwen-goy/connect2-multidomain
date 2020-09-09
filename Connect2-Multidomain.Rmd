@@ -401,6 +401,8 @@ data$Lonely[data$CLSA_lonely > 1] <- 1
 
 # "Participants scored 1 point if they were married or in a domestic partnership. They also received 1 point (each) if they had interpersonal contact at least every 1 to 2 weeks (during the past year) with children, other close family members, friends, neighbours, work colleagues, schoolmates, fellow volunteers, members of nonreligious community groups, and members of religious groups." (Mick et al, 2018)
 
+data$SNI_total <- rep(NA, 527)
+  
 sni <- data.frame(case = c(1:527)) # Create new temp dataset
 
 sni$Partner <- ifelse(data$Demo_6_marital == 1, 1, 
@@ -473,6 +475,8 @@ sni$Religious <- ifelse(data$Social_participate_2 == 1, 1,
 
 sni$SNI_total <- rowSums(sni[, c("Partner", "Children", "CloseRelatives", "Friends", "Neighbours", "Colleagues", "Schoolmates", "Volunteers", "Community", "Religious")], na.rm=TRUE)
 #table(sni$SNI_total, useNA='always')
+
+data$SNI_total <- sni$SNI_total
 
 # Social Participation (CCHS / CLSA)
 
@@ -1009,7 +1013,7 @@ sum(counts$combinations, na.rm=TRUE) #expect 1179 pairs of conditions
 Looking at the whole sample of participants, having greater PTA is associated with being older (p < 0.0001), being male (p = 0.003), to a slight extent having a cardiovascular disorder (p = 0.06), but not with having arthritis or diabetes.
 ```{r, echo=FALSE}
 
-# recode "gender" (I know, it's not biological sex) to 0 and 1
+# recode "gender" to 0 and 1
 data2$Sex <- c(0)
 data2$Sex[data2$Demo_1_gender == 2] <- 1
 
@@ -1070,7 +1074,7 @@ rm(list = c('data3', 'data4', 'data5'))
 
 ```
   
-# Merging Connect 1 and Connect 2 data
+# Examining loneliness
   
 Using only n=424 cases in Connect 2, where participants have a known Hearing Group and ≥90% data, Connect 1 data was matched to Connect 2 data using clinic IDs.
 ```{r, eval = FALSE, include = FALSE}
@@ -1096,57 +1100,21 @@ c1 <- read.csv("Connect_Data_20191025.csv", header=TRUE, na.strings=c("", "NA"))
 c3 <- merge(x = c2, y = c1, all.x = TRUE, by.x = 'ID', by.y = 'ID')
 
 # Delete duplicated columns labelled with a .x suffix
-c4 <- c3[, -c(275:301, 332:334)]
-write.csv(c4, "~/Desktop/Connect1_Connect2_merged_2020.07.29.csv")
+c4 <- c3[, -c(275:301, 333:335)]
+write.csv(c4, "~/Desktop/Connect1_Connect2_merged_2020.09.08.csv")
+
+# Note: easier to delete the .y suffixes manually in batch; columns370 to 402; fix the Age.Years header
 ```
   
-Connect1_Connect2_merged_2020.07.29
+Connect1_Connect2_merged_2020.09.08
 ```{r, echo=FALSE}
 
-cdata <- read.csv("Connect1_Connect2_merged_2020.07.29.csv", header=TRUE, na.strings=c("", "NA"))
+cdata <- read.csv("Connect1_Connect2_merged_2020.09.08.csv", header=TRUE, na.strings=c("", "NA"))
 ```
-  
-## Length of time for HA decision
-  
-Examining just the 60 HA participants, 16 did not have a date of HA purchase in Connect 1 even though they reported using HA in Connect 2; they likely got their HA elsewhere. The length of time between "Most recent hearing eval" and "Date of HA purchase" was calculated. ("Date of first visit" frequently had missing values, while "Date of most recent visit" was frequently after the date of purchase, so these were not good time markers.)
-  
-```{r, echo=FALSE}
 
-ha <- subset(cdata, Group == "HA")
-ha$Time_to_purchase <- as.Date(ha$Date.HA.Purchase, format = "%m %d %Y") - as.Date(ha$Date.Most.Recent.Hearing.Eval, format = "%m %d %Y")
-ha$Time_to_purchase[ha$Time_to_purchase < 0] <- NA
-
-plot(x = ha$SocSuppMOS_overall, y = ha$Time_to_purchase, xlim = c(1, 5), ylim = c(0, 200), pch = 16, 
-     xlab = "MOS Social Support overall", ylab = "Time to purchase (days)")
-
-rm(ha)
-```
+## Current loneliness status by hearing status
   
-## Change in loneliness from Time 1 to Time 2
-  
-The same question on loneliness was asked in Connect 1 as in Connect 2: "In the past week, how often did you feel lonely? All of the time (4), Occasionally (3), Some of the time (2), Rarely or never (1)." In Connect 2, the responses were also recoded to a binary variable (lonely or not) according to Mick et al. (2018). All 424 cases in Connect 2 have loneliness data available, while 22 of these people are missing loneliness data from Connect 1.
-    
-75.6% of people did not change their responses on "loneliness" from Connect 1 to Connect 2. Another 6.6% of people responded that they were less lonely at Time 2, while 12.7% responded that they were more lonely at Time 2. (5.2% were missing Time 1 data, so we can't tell if they changed.)
-  
-```{r, echo=FALSE}  
-
-# Calculate how many got better, got worse, or stayed the same, or were NA
-#sum(is.na(cdata$Q55_Corrected)) #22
-#sum(is.na(cdata$CLSA_lonely)) #0
-#d <- data.frame(Connect1 = cdata$Q55_Corrected, Connect2 = cdata$CLSA_lonely)
-#t <- table(d[, 1], d[, 2], dnn = c("Connect 1", "Connect 2"), useNA = 'always')
-#addmargins(t)
-#round(addmargins(prop.table(t) * 100), digits = 1)
-#sum(diag(t)) / 424 * 100
-#sum(c(t[2:4, 1], t[3:4, 2], t[4, 3])) / 424 * 100
-#sum(c(t[1, 2:4], t[2, 3:4], t[3, 4])) / 424 * 100
-
-plot(jitter(cdata$Q55_Corrected), jitter(cdata$CLSA_lonely), lab = c(4, 4, 4),
-     xlab="Time 1 loneliness", ylab="Time 2 loneliness")
-```
-  
-The proportions of those who were lonely did not seem to differ by hearing status.
-  
+The proportion of those who were lonely (at the current time) did not differ by hearing status.
 ```{r, echo = FALSE}  
 
 cdata$Group <- factor(cdata$Group, levels = c("NH", "HL", "HA"))
@@ -1165,4 +1133,102 @@ rm(t)
   #(50 - 47.83019)^2/47.83019 + 
   #(10 - 12.16981)^2/12.16981 )
 ```
+ 
+## Change in loneliness from Time 1 to Time 2
+  
+The same question on loneliness was asked in Connect 1 as in Connect 2: "In the past week, how often did you feel lonely? All of the time (4), Occasionally (3), Some of the time (2), Rarely or never (1)." All 424 cases in Connect 2 have loneliness data available, while 22 of these people are missing loneliness data from Connect 1. Only the 402 people with both Connect 1 and Connect 2 loneliness data available are analyzed.
+
+|Group|Same at T2|Less lonely at T2|More lonely at T2|
+|-----|-----|-----|-----|
+|NH|80.9%|6.2%|12.8%|
+|HL|73.3%|10.0%|16.7%|
+|HA|83.6%|5.5%|10.9%|
+  
+```{r, echo=FALSE, results='hide', fig.show='hide'}
+
+# exclude those with missing data for Time 1 or Time 2
+c2 <- cdata[is.na(cdata$Q55_Corrected) == FALSE & 
+            is.na(cdata$CLSA_lonely) == FALSE, ]
+
+# arrange factor levels for hearing group variable
+c2$Group <- factor(c2$Group, levels = c("NH", "HL", "HA"))
+
+# new variable, T2 - T1 loneliness
+c2$Loneliness_change <- c2$CLSA_lonely - c2$Q55_Corrected
+
+# Calculate how stayed the same, got better, or got worse, per group
+d <- data.frame(Connect1 = c2$Q55_Corrected, 
+                 Connect2 = c2$CLSA_lonely, 
+                 Group = c2$Group)
+t <- table(d[, 1], d[, 2], d[, 3], dnn = c("Connect 1", "Connect 2", "Group"))
+addmargins(t)
+
+# NH (same, better, worse)
+(196+8+4+0)/257
+(12+1+1+2)/257
+(20+6+4+1+2)/257
+# HL
+(60+6+0+0)/90
+(5+1+2+1)/90
+(7+2+3+2+1)/90
+# HA
+(44+1+1+0)/55
+(1+2)/55
+(5+1)/55
+#table(d$Group)
+
+library(ggplot2)
+
+# scatterplot showing Time 1 vs Time 2, by group
+# export 6 x 16 inches
+ggplot(c2, aes(x = jitter(Q55_Corrected, factor = 0.75), y = jitter(CLSA_lonely, factor = 0.75), group = Group)) + 
+  geom_abline(intercept = 0, slope = 1, col = "gray50") + 
+  geom_point(size = 2, alpha=0.5) +
+  xlab('Time 1 Loneliness') +
+  ylab('Time 2 Loneliness') + 
+  coord_cartesian(xlim=c(0.5, 4.5), ylim=c(0.5, 4.5)) + 
+  facet_grid( ~ Group) + 
+  theme_bw() +   
+  theme(axis.title = element_text(size = 25), 
+    axis.text = element_text(colour = "black", size = 20), 
+    text = element_text(size = 20))
+```
+ 
+![](loneliness.jpg)
+ 
+```{r, echo=FALSE, message=FALSE, warning = FALSE}
+
+# scatterplots showing change in loneliness (T2 - T1), by group, against other variables
+ggplot(c2, aes(x = HHIES_total, y = jitter(Loneliness_change), group = Group)) + 
+  geom_point(size = 2) +
+  xlab('HHIES total') +
+  ylab('T2 - T1 loneliness') + 
+  facet_grid( ~ Group) + 
+  theme_bw() +   
+  theme(axis.title = element_text(size = 25), 
+    axis.text = element_text(colour = "black", size = 20), 
+    text = element_text(size = 20))
+
+ggplot(c2, aes(x = SNI_total, y = jitter(Loneliness_change), group = Group)) + 
+  geom_point(size = 2) +
+  xlab('Social Network Index') +
+  ylab('T2 - T1 loneliness') + 
+  facet_grid( ~ Group) + 
+  theme_bw() +   
+  theme(axis.title = element_text(size = 25), 
+    axis.text = element_text(colour = "black", size = 20), 
+    text = element_text(size = 20))
+
+ggplot(c2, aes(x = SocSuppMOS_overall, y = jitter(Loneliness_change), group = Group)) + 
+  geom_point(size = 2) +
+  xlab('Social support MOS') +
+  ylab('T2 - T1 loneliness') + 
+  facet_grid( ~ Group) + 
+  theme_bw() +   
+  theme(axis.title = element_text(size = 25), 
+    axis.text = element_text(colour = "black", size = 20), 
+    text = element_text(size = 20))
+```
+  
+
   
