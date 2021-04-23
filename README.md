@@ -10,11 +10,10 @@ There were 553 survey responses recorded on Qualtrics. After filtering out parti
  
 #### About the code
  
-The R file contains code for: 
-a) Cleaning the raw data from Qualtrics 
-b) Merging survey responses with clinic measurements 
-c) Creating scored variables from individual questionnaire items 
-d) Visualizations 
+The R file contains code for:  
+a) Cleaning the raw data from Qualtrics   
+b) Creating scored variables from individual questionnaire items   
+c) Visualizations and some simple statistical analyses   
  
 #### Results and conclusions
  
