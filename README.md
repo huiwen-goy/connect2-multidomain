@@ -10,7 +10,11 @@ There were 553 survey responses recorded on Qualtrics. After filtering out parti
  
 #### About the code
  
-The Rmd file contains code for: cleaning the raw dataset from Qualtrics; merging survey responses with clinic measurements; creating scored variables from individual questionnaire items; visualizations for variables of interest, and some statistical analyses of group differences.
+The R file contains code for: 
+a) Cleaning the raw data from Qualtrics 
+b) Merging survey responses with clinic measurements 
+c) Creating scored variables from individual questionnaire items 
+d) Visualizations 
  
 #### Results and conclusions
  
