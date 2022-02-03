@@ -1,3 +1,7 @@
+#### Report
+ 
+[https://huiwen-goy.github.io/connect2-multidomain/Connect2-Multidomain.html](https://huiwen-goy.github.io/connect2-multidomain/Connect2-Multidomain.html)
+ 
 #### About this project
 
 The goals of this project were to: 
@@ -14,8 +18,4 @@ The R file contains code for:
 a) Cleaning the raw data from Qualtrics   
 b) Creating scored variables from individual questionnaire items   
 c) Visualizations and some statistical analyses   
- 
-#### Report
- 
-[https://huiwen-goy.github.io/connect2-multidomain/Connect2-Multidomain.html](https://huiwen-goy.github.io/connect2-multidomain/Connect2-Multidomain.html)
  
